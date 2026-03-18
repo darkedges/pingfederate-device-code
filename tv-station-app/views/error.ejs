@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Error - TV Station</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .error-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .error-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .error-header h1 {
+            color: #ef4444;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .error-header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .error-box {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .error-box h3 {
+            color: #7f1d1d;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .error-code {
+            background: #fff;
+            border: 1px solid #fecaca;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #7f1d1d;
+            word-break: break-all;
+        }
+
+        .error-description {
+            color: #7f1d1d;
+            line-height: 1.6;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+
+        .details-section {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+
+        .details-section h4 {
+            color: #333;
+            font-size: 13px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .detail-item {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #666;
+            padding: 5px 0;
+            word-break: break-all;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #333;
+            display: inline-block;
+            min-width: 100px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+            transform: translateY(-2px);
+        }
+
+        .help-section {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #444;
+        }
+
+        .help-section strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        ul {
+            margin-left: 20px;
+        }
+
+        li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="error-header">
+            <div class="error-icon">⚠️</div>
+            <h1>Authentication Error</h1>
+            <p>Something went wrong during the login process</p>
+        </div>
+
+        <div class="error-box">
+            <h3>Error Code</h3>
+            <div class="error-code">
+                <%= error || 'UNKNOWN_ERROR' %>
+            </div>
+
+            <% if (error_description) { %>
+                <h3 style="margin-top: 15px;">Error Details</h3>
+                <div class="error-description">
+                    <%= error_description %>
+                </div>
+                <% } %>
+        </div>
+
+        <% if (error==='invalid_scope' ) { %>
+            <div class="details-section">
+                <h4>What Happened?</h4>
+                <p style="color: #666; font-size: 13px;">
+                    The TV Station App requested access scopes that your Ping Federate client is not configured to use.
+                    Only the default scope can be requested for this client.
+                </p>
+            </div>
+
+            <div class="help-section">
+                <strong>How to Fix This:</strong>
+                <ol>
+                    <li>Contact your Ping Federate administrator</li>
+                    <li>Ask to update the <strong>
+                            <%= clientId || 'tv-station-client' %>
+                        </strong> OAuth client</li>
+                    <li>Ensure it allows the <code>openid profile email</code> scopes</li>
+                    <li>Try logging in again</li>
+                </ol>
+            </div>
+            <% } else if (error==='access_denied' ) { %>
+                <div class="help-section">
+                    <strong>You Denied Access</strong>
+                    <p style="margin-top: 8px;">
+                        You clicked "Cancel" or "Deny" during the authorization process.
+                        Please approve access to your information to continue.
+                    </p>
+                </div>
+                <% } else if (error==='invalid_client' ) { %>
+                    <div class="help-section">
+                        <strong>Client Configuration Error</strong>
+                        <ol>
+                            <li>Verify the TV Station App client credentials in Ping Federate</li>
+                            <li>Ensure the redirect URI is correctly configured</li>
+                            <li>Expected: <code><%= redirectUri || 'http://localhost:3001/auth/callback' %></code></li>
+                            <li>Contact your administrator if the issue persists</li>
+                        </ol>
+                    </div>
+                    <% } else { %>
+                        <div class="help-section">
+                            <strong>Troubleshooting Steps:</strong>
+                            <ol>
+                                <li>Clear your browser cookies and cache</li>
+                                <li>Try again in an incognito/private window</li>
+                                <li>Check that Ping Federate is accessible and running</li>
+                                <li>Contact your administrator if the problem continues</li>
+                            </ol>
+                        </div>
+                        <% } %>
+
+                            <% if (state) { %>
+                                <div class="details-section" style="margin-top: 20px;">
+                                    <h4>Request Information</h4>
+                                    <div class="detail-item">
+                                        <span class="detail-label">State:</span>
+                                        <code><%= state %></code>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="detail-label">Client:</span>
+                                        <code><%= clientId || 'tv-station-client' %></code>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="detail-label">Timestamp:</span>
+                                        <code><%= new Date().toISOString() %></code>
+                                    </div>
+                                </div>
+                                <% } %>
+
+                                    <div class="buttons">
+                                        <a href="/" style="text-decoration: none; display: flex; align-items: center;">
+                                            <button class="btn-primary">← Back to Home</button>
+                                        </a>
+                                        <a href="/auth/login"
+                                            style="text-decoration: none; display: flex; align-items: center;">
+                                            <button class="btn-secondary">Try Again</button>
+                                        </a>
+                                    </div>
+    </div>
+</body>
+
+</html>

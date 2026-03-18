@@ -16,6 +16,11 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.TV_APP_PORT || 3000;
 
+const LOG_PREFIX = '[TV Streaming]';
+const logInfo = (...args) => console.log(LOG_PREFIX, ...args);
+const logWarn = (...args) => console.warn(LOG_PREFIX, ...args);
+const logError = (...args) => console.error(LOG_PREFIX, ...args);
+
 // ============================================
 // Configuration
 // ============================================
@@ -39,6 +44,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(
     session({
+        name: 'tv-streaming.sid', // Avoid cookie collision with tv-station app
         secret: 'tv-app-secret',
         resave: false,
         saveUninitialized: true,
@@ -69,9 +75,7 @@ app.get('/', (req, res) => {
  */
 app.post('/device-code/request', async (req, res) => {
     try {
-        console.log('Requesting device code from Ping Federate...');
-        console.log(`Using endpoint: ${CONFIG.pingFederate.baseUrl}/as/device_authz.oauth2`);
-        console.log(`Client ID: ${CONFIG.pingFederate.clientId}`);
+        logInfo('Device code request started');
 
         // Call Ping Federate Device Code endpoint
         const response = await axios.post(
@@ -101,9 +105,7 @@ app.post('/device-code/request', async (req, res) => {
         req.session.pollInterval = interval || 5; // 5 seconds default
         req.session.deviceFlowStartTime = Date.now();
 
-        console.log(`Device Code requested successfully`);
-        console.log(`User Code: ${user_code}`);
-        console.log(`Verification URI: ${verification_uri}`);
+        logInfo(`Device code request succeeded (userCode=${user_code})`);
 
         res.json({
             success: true,
@@ -116,22 +118,11 @@ app.post('/device-code/request', async (req, res) => {
         // Start automatically polling for token in background
         startDeviceCodePolling(device_code, req.session);
     } catch (error) {
-        console.error('Error requesting device code:', error.message);
+        logError('Device code request failed:', error.message);
 
-        // Enhanced error logging for debugging
         if (error.response) {
-            console.error(`Response Status: ${error.response.status}`);
-            console.error(`Response Data:`, error.response.data);
-
-            if (error.response.status === 401) {
-                console.error('❌ 401 Unauthorized - Check your client credentials:');
-                console.error(`   - PF_BASE_URL: ${CONFIG.pingFederate.baseUrl}`);
-                console.error(`   - Client ID: ${CONFIG.pingFederate.clientId}`);
-                console.error(`   - Client Secret: ${CONFIG.pingFederate.clientSecret === 'secret-key-123' ? '⚠️  USING DEFAULT (PLACEHOLDER)' : '✓ Set'}`);
-            } else if (error.response.status === 404) {
-                console.error('❌ 404 Not Found - Check the endpoint exists in Ping Federate');
-                console.error('   Ensure "Device Authorization Grant" is enabled');
-            }
+            logError(`Response Status: ${error.response.status}`);
+            logError(`Error: ${error.response.data?.error || 'unknown_error'}`);
         }
 
         res.status(500).json({
@@ -157,13 +148,11 @@ function startDeviceCodePolling(deviceCode, session) {
 
         if (attempts > maxAttempts) {
             clearInterval(pollTimer);
-            console.log('Device code expired, polling stopped');
+            logInfo('Device code polling stopped: code expired');
             return;
         }
 
         try {
-            console.log(`[Device Code Poll] Attempt ${attempts}/${maxAttempts}`);
-
             const params = new URLSearchParams();
             params.append('grant_type', 'urn:ietf:params:oauth:grant-type:device_code');
             params.append('device_code', deviceCode);
@@ -195,32 +184,24 @@ function startDeviceCodePolling(deviceCode, session) {
             // Save session to persist changes
             session.save((err) => {
                 if (err) {
-                    console.error('Error saving session:', err.message);
-                } else {
-                    console.log('Session saved successfully');
+                    logError('Session save failed:', err.message);
                 }
             });
 
             clearInterval(pollTimer);
-            console.log('✓ Device Code authentication successful!');
+            logInfo('Device code authentication succeeded');
         } catch (error) {
             if (error.response?.data?.error === 'authorization_pending') {
-                console.log(`[Device Code Poll] Authorization pending...`);
+                return;
             } else if (error.response?.data?.error === 'slow_down') {
-                console.log(`[Device Code Poll] Slow down requested, increasing interval`);
-                // Increase interval on slow_down
+                return;
             } else if (error.response?.data?.error === 'expired_token') {
                 clearInterval(pollTimer);
-                console.log('Device code expired');
+                logInfo('Device code polling stopped: token expired');
             } else if (error.response?.status === 400) {
-                console.error(`[Device Code Poll Error 400]: Bad request`);
-                console.error(`  Response data:`, error.response.data);
-                console.error(`  Make sure device_code, client_id, and grant_type are correct`);
+                logError(`[Device Code Poll Error 400] ${error.response.data?.error || 'bad_request'}`);
             } else {
-                console.error(`[Device Code Poll Error]:`, error.message);
-                if (error.response?.data) {
-                    console.error(`  Response:`, error.response.data);
-                }
+                logError(`[Device Code Poll Error]:`, error.message);
             }
         }
     }, pollInterval);
@@ -240,7 +221,7 @@ app.post('/ciba/request', async (req, res) => {
             });
         }
 
-        console.log(`Initiating CIBA flow for phone: ${phoneNumber}`);
+        logInfo(`CIBA request started (phone=${phoneNumber})`);
 
         // Call Ping Federate CIBA backchannel authentication request endpoint
         const response = await axios.post(
@@ -269,7 +250,7 @@ app.post('/ciba/request', async (req, res) => {
         req.session.cibaPollInterval = interval || 2; // 2 seconds default
         req.session.cibaStartTime = Date.now();
 
-        console.log(`CIBA request created with ID: ${auth_req_id}`);
+        logInfo(`CIBA request succeeded (authReqId=${auth_req_id})`);
 
         res.json({
             success: true,
@@ -282,21 +263,11 @@ app.post('/ciba/request', async (req, res) => {
         // Start polling for authentication result
         startCIBAPolling(auth_req_id, req.session);
     } catch (error) {
-        console.error('Error initiating CIBA flow:', error.message);
+        logError('CIBA request failed:', error.message);
 
-        // Enhanced error logging for debugging
         if (error.response) {
-            console.error(`Response Status: ${error.response.status}`);
-            console.error(`Response Data:`, error.response.data);
-
-            if (error.response.status === 401) {
-                console.error('❌ 401 Unauthorized - Client credentials issue');
-                console.error(`   Check TV_CLIENT_ID and TV_CLIENT_SECRET in .env`);
-            } else if (error.response.status === 404) {
-                console.error('❌ 404 Not Found - CIBA endpoint not found');
-                console.error('   Expected endpoint: /as/bc-auth.ciba');
-                console.error('   Ensure "CIBA" is enabled in Ping Federate');
-            }
+            logError(`Response Status: ${error.response.status}`);
+            logError(`Error: ${error.response.data?.error || 'unknown_error'}`);
         }
 
         res.status(500).json({
@@ -321,13 +292,11 @@ function startCIBAPolling(authReqId, session) {
 
         if (attempts > maxAttempts) {
             clearInterval(pollTimer);
-            console.log('CIBA request expired, polling stopped');
+            logInfo('CIBA polling stopped: request expired');
             return;
         }
 
         try {
-            console.log(`[CIBA Poll] Attempt ${attempts}/${maxAttempts}`);
-
             const response = await axios.post(
                 `${CONFIG.pingFederate.baseUrl}/as/token.oauth2`,
                 new URLSearchParams({
@@ -357,33 +326,26 @@ function startCIBAPolling(authReqId, session) {
             // Save session to persist changes
             session.save((err) => {
                 if (err) {
-                    console.error('Error saving CIBA session:', err.message);
-                } else {
-                    console.log('CIBA session saved successfully');
+                    logError('CIBA session save failed:', err.message);
                 }
             });
 
             clearInterval(pollTimer);
-            console.log('✓ CIBA authentication successful!');
+            logInfo('CIBA authentication succeeded');
         } catch (error) {
             if (error.response?.data?.error === 'auth_req_id_not_found') {
-                console.log(`[CIBA Poll] Request not found, may be expired`);
+                return;
             } else if (error.response?.data?.error === 'authorization_pending') {
-                console.log(`[CIBA Poll] Authorization pending...`);
+                return;
             } else if (error.response?.data?.error === 'slow_down') {
-                console.log(`[CIBA Poll] Slow down requested`);
+                return;
             } else if (error.response?.data?.error === 'expired_token') {
                 clearInterval(pollTimer);
-                console.log('CIBA request expired');
+                logInfo('CIBA polling stopped: token expired');
             } else if (error.response?.status === 400) {
-                console.error(`[CIBA Poll Error 400]: Bad request`);
-                console.error(`  Response data:`, error.response.data);
-                console.error(`  Make sure auth_req_id, client_id, and grant_type are correct`);
+                logError(`[CIBA Poll Error 400] ${error.response.data?.error || 'bad_request'}`);
             } else {
-                console.error(`[CIBA Poll Error]:`, error.message);
-                if (error.response?.data) {
-                    console.error(`  Response:`, error.response.data);
-                }
+                logError(`[CIBA Poll Error]:`, error.message);
             }
         }
     }, pollInterval);
@@ -453,8 +415,7 @@ app.get('/userinfo', async (req, res) => {
     }
 
     try {
-        console.log('Fetching userinfo with token...');
-        console.log(`Access Token: ${req.session.accessToken ? req.session.accessToken.substring(0, 20) + '...' : 'NONE'}`);
+        logInfo('User info fetch started');
 
         const response = await axios.get(
             `${CONFIG.pingFederate.baseUrl}/idp/userinfo.openid`,
@@ -465,30 +426,17 @@ app.get('/userinfo', async (req, res) => {
             }
         );
 
-        console.log('✓ Userinfo retrieved successfully');
+        logInfo('User info fetch succeeded');
         res.json({
             success: true,
             userInfo: response.data,
         });
     } catch (error) {
-        console.error('Error fetching userinfo:', error.message);
+        logError('User info fetch failed:', error.message);
 
         if (error.response) {
-            console.error(`  Status: ${error.response.status}`);
-            console.error(`  Data:`, error.response.data);
-
-            if (error.response.status === 404) {
-                console.error('  ❌ 404 - Userinfo endpoint not found');
-                console.error('  Try these alternative endpoints:');
-                console.error('     - /idp/userinfo.openid (✓ Ping Federate 12.3.3.1)');
-                console.error('     - /as/userinfo.oauth2 (standard OAuth 2.0)');
-                console.error('     - /as/userinfo');
-                console.error('     - /oidc/userinfo.oauth2');
-                console.error('     - /oauth2/userinfo.oauth2');
-            } else if (error.response.status === 401) {
-                console.error('  ❌ 401 - Unauthorized (invalid or expired token)');
-                console.error('  Ensure the access token is valid and has proper scope');
-            }
+            logError(`  Status: ${error.response.status}`);
+            logError(`  Error: ${error.response.data?.error || 'unknown_error'}`);
         }
 
         res.status(error.response?.status || 500).json({
@@ -557,7 +505,7 @@ app.get('/userinfo/debug', async (req, res) => {
 // Error Handling
 // ============================================
 app.use((err, req, res, next) => {
-    console.error('Server error:', err);
+    logError('Unhandled server error:', err);
     res.status(500).json({
         error: 'Internal server error',
         message: err.message,
@@ -568,7 +516,7 @@ app.use((err, req, res, next) => {
 // Server Start
 // ============================================
 app.listen(PORT, () => {
-    console.log(`
+    logInfo(`
 ╔════════════════════════════════════════════════════════╗
 ║  TV Streaming App - Device Code & CIBA Demo            ║
 ║  Port: ${PORT}                                        ║
@@ -576,7 +524,7 @@ app.listen(PORT, () => {
 ║  Identity App URL: ${CONFIG.verificationApp.baseUrl}   ║
 ╚════════════════════════════════════════════════════════╝
   `);
-    console.log(`Open http://localhost:${PORT} in your browser`);
+    logInfo(`Open http://localhost:${PORT} in your browser`);
 });
 
 module.exports = app;

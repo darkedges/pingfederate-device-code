@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -178,6 +179,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -189,65 +191,77 @@
         <% if (isAuthenticated) { %>
             <div class="status authenticated">
                 <div class="status-title">✓ Authenticated</div>
-                <div class="status-content">You are logged in and can access the device code authorization endpoint.</div>
+                <div class="status-content">You are logged in and can access the device code authorization endpoint.
+                </div>
             </div>
 
             <% if (user && user.preferred_username) { %>
                 <div class="user-info">
                     <div class="user-info-item">
                         <span class="user-info-label">Username:</span>
-                        <span class="user-info-value"><%= user.preferred_username %></span>
+                        <span class="user-info-value">
+                            <%= user.preferred_username %>
+                        </span>
                     </div>
                     <% if (user.email) { %>
                         <div class="user-info-item">
                             <span class="user-info-label">Email:</span>
-                            <span class="user-info-value"><%= user.email %></span>
+                            <span class="user-info-value">
+                                <%= user.email %>
+                            </span>
                         </div>
-                    <% } %>
-                    <% if (user.name) { %>
-                        <div class="user-info-item">
-                            <span class="user-info-label">Name:</span>
-                            <span class="user-info-value"><%= user.name %></span>
-                        </div>
-                    <% } %>
+                        <% } %>
+                            <% if (user.name) { %>
+                                <div class="user-info-item">
+                                    <span class="user-info-label">Name:</span>
+                                    <span class="user-info-value">
+                                        <%= user.name %>
+                                    </span>
+                                </div>
+                                <% } %>
                 </div>
-            <% } %>
+                <% } %>
 
-            <div class="actions">
-                <a href="/device" style="text-decoration: none;">
-                    <button class="btn-primary" style="width: 100%;">Go to Device Code Authorization</button>
-                </a>
-                <form action="/auth/logout" method="POST" style="margin: 0;">
-                    <button type="submit" class="btn-danger" style="width: 100%;">Logout</button>
-                </form>
-            </div>
+                    <div class="actions">
+                        <a href="/device" style="text-decoration: none;">
+                            <button class="btn-primary" style="width: 100%;">Go to Device Code Authorization</button>
+                        </a>
+                        <form action="/auth/logout" method="POST" style="margin: 0;">
+                            <button type="submit" class="btn-danger" style="width: 100%;">Logout</button>
+                        </form>
+                    </div>
 
-            <div class="info-box">
-                <strong>📱 Next Steps:</strong>
-                Browse to the TV Streaming App running at <a href="<%= tvStreamingAppUrl %>" target="_blank" class="link"><%= tvStreamingAppUrl %></a> to request a device code. Then return here to authorize it.
-            </div>
-        <% } else { %>
-            <div class="status">
-                <div class="status-title">Not Authenticated</div>
-                <div class="status-content">You need to login first to access the device code authorization endpoint.</div>
-            </div>
+                    <div class="info-box">
+                        <strong>📱 Next Steps:</strong>
+                        Browse to the TV Streaming App running at <a href="<%= tvStreamingAppUrl %>" target="_blank"
+                            class="link">
+                            <%= tvStreamingAppUrl %>
+                        </a> to request a device code. Then return here to authorize it.
+                    </div>
+                    <% } else { %>
+                        <div class="status">
+                            <div class="status-title">Not Authenticated</div>
+                            <div class="status-content">You need to login first to access the device code authorization
+                                endpoint.</div>
+                        </div>
 
-            <div class="actions">
-                <a href="/auth/login" style="text-decoration: none;">
-                    <button class="btn-primary" style="width: 100%;">Login with Ping Federate</button>
-                </a>
-            </div>
+                        <div class="actions">
+                            <a href="/auth/login" style="text-decoration: none;">
+                                <button class="btn-primary" style="width: 100%;">Login with Ping Federate</button>
+                            </a>
+                        </div>
 
-            <div class="info-box">
-                <strong>How it works:</strong>
-                <ol style="margin-left: 20px; margin-top: 10px;">
-                    <li>Click the login button above</li>
-                    <li>Authenticate with your Ping Federate credentials</li>
-                    <li>Access the device code authorization endpoint</li>
-                    <li>Enter device codes from TV devices to authorize them</li>
-                </ol>
-            </div>
-        <% } %>
+                        <div class="info-box">
+                            <strong>How it works:</strong>
+                            <ol style="margin-left: 20px; margin-top: 10px;">
+                                <li>Click the login button above</li>
+                                <li>Authenticate with your Ping Federate credentials</li>
+                                <li>Access the device code authorization endpoint</li>
+                                <li>Enter device codes from TV devices to authorize them</li>
+                            </ol>
+                        </div>
+                        <% } %>
     </div>
 </body>
+
 </html>

@@ -13,6 +13,11 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.TV_STATION_APP_PORT || 3001;
 
+const LOG_PREFIX = '[TV Station]';
+const logInfo = (...args) => console.log(LOG_PREFIX, ...args);
+const logWarn = (...args) => console.warn(LOG_PREFIX, ...args);
+const logError = (...args) => console.error(LOG_PREFIX, ...args);
+
 // ============================================
 // Configuration
 // ============================================
@@ -35,12 +40,23 @@ const CONFIG = {
 // ============================================
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Session secret for signing session cookie ID
+const sessionSecret = process.env.STATION_SESSION_SECRET || 'tv-station-secret';
+
 app.use(
     session({
-        secret: process.env.STATION_SESSION_SECRET || 'tv-station-secret',
-        resave: false,
-        saveUninitialized: true,
-        cookie: { secure: false }, // Set true in production with HTTPS
+        name: 'tv-station.sid', // Avoid cookie collision with other localhost apps
+        secret: sessionSecret,
+        resave: false, // Don't save if session hasn't changed
+        saveUninitialized: false, // Only create session when data exists
+        rolling: false,
+        cookie: {
+            secure: false, // Set true in production with HTTPS
+            httpOnly: true,
+            sameSite: 'Lax', // Allow credentials in same-site requests
+            maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        },
     })
 );
 app.set('view engine', 'ejs');
@@ -53,6 +69,8 @@ const requireAuthCodeFlow = (req, res, next) => {
     if (req.session.authCodeAccessToken && req.session.authCodeAuthenticatedUser) {
         return next();
     }
+
+    logInfo('Auth check failed: redirecting to login');
     // Redirect to login
     res.redirect('/auth/login?redirect=/device');
 };
@@ -90,7 +108,7 @@ app.get('/auth/login', (req, res) => {
     authUrl.searchParams.append('redirect_uri', `${CONFIG.app.baseUrl}/auth/callback`);
     authUrl.searchParams.append('state', state);
 
-    console.log('Redirecting to Ping Federate authorization endpoint:', authUrl.toString());
+    logInfo('Authorization redirect started:', authUrl.toString());
     res.redirect(authUrl.toString());
 });
 
@@ -99,26 +117,46 @@ app.get('/auth/login', (req, res) => {
  * Called by Ping Federate with authorization code
  */
 app.get('/auth/callback', async (req, res) => {
-    const { code, state, error } = req.query;
+    const { code, state, error, error_description } = req.query;
 
     // Validate state parameter
     if (!state || state !== req.session.oauthState) {
-        console.error('Invalid state parameter - possible CSRF attack');
-        return res.status(400).send('Invalid state parameter');
+        logError('Authorization callback failed: invalid state parameter');
+        return res.status(400).render('error', {
+            error: 'invalid_state',
+            error_description: 'The state parameter is invalid or missing. This could indicate a security issue.',
+            state,
+            clientId: CONFIG.pingFederate.clientId,
+            redirectUri: `${CONFIG.app.baseUrl}/auth/callback`,
+        });
     }
 
+    // Handle authorization errors from Ping Federate
     if (error) {
-        console.error('Authorization server error:', error, req.query.error_description);
-        return res.status(400).send(`Authorization error: ${error}`);
+        logError('Authorization callback failed: provider returned error', error, error_description);
+        return res.status(400).render('error', {
+            error: error || 'UNKNOWN_ERROR',
+            error_description: error_description || 'An unknown error occurred during authentication',
+            state: state,
+            clientId: CONFIG.pingFederate.clientId,
+            redirectUri: `${CONFIG.app.baseUrl}/auth/callback`,
+        });
     }
 
+    // No authorization code received
     if (!code) {
-        console.error('No authorization code received');
-        return res.status(400).send('No authorization code received');
+        logError('Authorization callback failed: missing authorization code');
+        return res.status(400).render('error', {
+            error: 'no_code',
+            error_description: 'No authorization code was received from Ping Federate. The authorization request may have been interrupted.',
+            state: state,
+            clientId: CONFIG.pingFederate.clientId,
+            redirectUri: `${CONFIG.app.baseUrl}/auth/callback`,
+        });
     }
 
     try {
-        console.log('Exchanging authorization code for access token...');
+        logInfo('Token exchange started');
 
         // Exchange authorization code for access token
         const params = new URLSearchParams();
@@ -160,39 +198,59 @@ app.get('/auth/callback', async (req, res) => {
                 }
             );
             req.session.authCodeAuthenticatedUser = userInfoResponse.data;
-            console.log('✓ User authenticated via Authorization Code Grant');
-            console.log(
-                `  User: ${
-                    userInfoResponse.data.preferred_username ||
-                    userInfoResponse.data.email ||
-                    userInfoResponse.data.sub
+            logInfo('User info fetch succeeded');
+            logInfo(
+                `  User: ${userInfoResponse.data.preferred_username ||
+                userInfoResponse.data.email ||
+                userInfoResponse.data.sub
                 }`
             );
         } catch (userInfoError) {
-            console.warn('Could not fetch user info:', userInfoError.message);
+            logWarn('User info fetch failed, continuing with fallback user:', userInfoError.message);
             // Still mark as authenticated even if userinfo fails
             req.session.authCodeAuthenticatedUser = { sub: 'user' };
         }
 
         req.session.save((err) => {
             if (err) {
-                console.error('Error saving session:', err.message);
-                return res.status(500).send('Session error');
+                logError('Session save failed:', err.message);
+                return res.status(500).render('error', {
+                    error: 'session_error',
+                    error_description: 'Failed to save session data. Please try again.',
+                    clientId: CONFIG.pingFederate.clientId,
+                    redirectUri: `${CONFIG.app.baseUrl}/auth/callback`,
+                });
             }
+
+            logInfo(`Auth callback succeeded (sessionId=${req.sessionID})`);
 
             // Redirect to the originally requested page or /device
             const redirectUrl = req.session.redirectAfterLogin || '/device';
             res.redirect(redirectUrl);
         });
     } catch (error) {
-        console.error('Error exchanging authorization code:', error.message);
+        logError('Token exchange failed:', error.message);
 
         if (error.response) {
-            console.error(`  Status: ${error.response.status}`);
-            console.error(`  Data:`, error.response.data);
+            logError(`  Status: ${error.response.status}`);
+            logError(`  Error: ${error.response.data?.error || 'unknown_error'}`);
+
+            return res.status(error.response.status).render('error', {
+                error: error.response.data?.error || 'token_error',
+                error_description:
+                    error.response.data?.error_description ||
+                    `Failed to exchange authorization code (Status: ${error.response.status})`,
+                clientId: CONFIG.pingFederate.clientId,
+                redirectUri: `${CONFIG.app.baseUrl}/auth/callback`,
+            });
         }
 
-        res.status(500).send('Authentication failed');
+        res.status(500).render('error', {
+            error: 'server_error',
+            error_description: `Authentication failed: ${error.message}`,
+            clientId: CONFIG.pingFederate.clientId,
+            redirectUri: `${CONFIG.app.baseUrl}/auth/callback`,
+        });
     }
 });
 
@@ -214,6 +272,8 @@ app.get('/device', requireAuthCodeFlow, (req, res) => {
 app.post('/device/authorize', requireAuthCodeFlow, async (req, res) => {
     const { userCode } = req.body;
 
+    logInfo(`Device authorization started (sessionId=${req.sessionID})`);
+
     if (!userCode) {
         return res.status(400).json({
             success: false,
@@ -222,7 +282,7 @@ app.post('/device/authorize', requireAuthCodeFlow, async (req, res) => {
     }
 
     try {
-        console.log(`Submitting device code to Ping Federate: ${userCode}`);
+        logInfo('Submitting device code to Ping Federate');
 
         // POST to Ping Federate user authorization endpoint
         const response = await axios.post(
@@ -238,11 +298,12 @@ app.post('/device/authorize', requireAuthCodeFlow, async (req, res) => {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
+                timeout: 10000, // 10 second timeout
             }
         );
 
-        console.log('✓ Device code authorized successfully');
-        console.log('  Response:', response.data);
+        logInfo('Device authorization succeeded');
+        logInfo(`  Status: ${response.status}`);
 
         req.session.deviceCodeAuthzResult = {
             success: true,
@@ -253,7 +314,7 @@ app.post('/device/authorize', requireAuthCodeFlow, async (req, res) => {
 
         req.session.save((err) => {
             if (err) {
-                console.error('Error saving session:', err.message);
+                logError('Session save failed:', err.message);
             }
         });
 
@@ -263,20 +324,79 @@ app.post('/device/authorize', requireAuthCodeFlow, async (req, res) => {
             details: response.data,
         });
     } catch (error) {
-        console.error('Error authorizing device code:', error.message);
+        logError('Device authorization failed:', error.message);
 
-        if (error.response) {
-            console.error(`  Status: ${error.response.status}`);
-            console.error(`  Data:`, error.response.data);
-        }
-
-        res.status(error.response?.status || 500).json({
+        let errorDetails = {
             success: false,
             error: 'Failed to authorize device code',
-            details: error.response?.data,
-        });
+        };
+
+        // Handle different types of errors
+        if (error.response) {
+            // Ping Federate responded with an error
+            logError(`  HTTP Status: ${error.response.status}`);
+            logError(`  Error: ${error.response.data?.error || 'unknown_error'}`);
+
+            errorDetails.error = error.response.data?.error || `HTTP ${error.response.status}: ${error.response.statusText}`;
+            errorDetails.details = error.response.data;
+            errorDetails.hint = getErrorHint(error.response.status, error.response.data);
+
+            return res.status(error.response.status).json(errorDetails);
+        } else if (error.code === 'ECONNREFUSED') {
+            // Cannot connect to Ping Federate
+            logError('Ping Federate connection refused');
+            errorDetails.error = 'Cannot connect to Ping Federate';
+            errorDetails.hint = `Server cannot reach ${CONFIG.pingFederate.baseUrl}/as/user_authz.oauth2. Check if Ping Federate is running and accessible.`;
+            return res.status(500).json(errorDetails);
+        } else if (error.code === 'ENOTFOUND') {
+            // DNS resolution failed
+            logError('Ping Federate DNS resolution failed');
+            errorDetails.error = 'Cannot resolve Ping Federate hostname';
+            errorDetails.hint = `Cannot resolve hostname: ${CONFIG.pingFederate.baseUrl}. Check your PF_BASE_URL configuration.`;
+            return res.status(500).json(errorDetails);
+        } else if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
+            // Timeout
+            logError('Ping Federate request timed out');
+            errorDetails.error = 'Request timeout';
+            errorDetails.hint = `Ping Federate did not respond within 10 seconds. The server may be overloaded or offline.`;
+            return res.status(504).json(errorDetails);
+        } else if (error.message.includes('CORS')) {
+            // CORS error
+            logError('CORS validation failed');
+            errorDetails.error = 'CORS error communicating with Ping Federate';
+            errorDetails.hint = 'This is a server-side CORS issue. Contact your administrator.';
+            return res.status(500).json(errorDetails);
+        } else {
+            // Generic error
+            logError(`  Error type: ${error.code || 'UNKNOWN'}`);
+            logError(`  Message: ${error.message}`);
+            errorDetails.error = error.message || 'Unknown error occurred';
+            errorDetails.errorType = error.code || 'UNKNOWN';
+            return res.status(500).json(errorDetails);
+        }
     }
 });
+
+/**
+ * Helper function to provide hints based on error code
+ */
+function getErrorHint(statusCode, responseData) {
+    if (statusCode === 400) {
+        const errorCode = responseData?.error;
+        if (errorCode === 'invalid_request') {
+            return 'The request is invalid. Check the user code format.';
+        } else if (errorCode === 'invalid_code') {
+            return 'The device code is invalid or expired. Request a new one.';
+        }
+    }
+    if (statusCode === 401) {
+        return 'Client authentication failed. Check STATION_CLIENT_ID and STATION_CLIENT_SECRET in .env';
+    }
+    if (statusCode === 404) {
+        return 'Endpoint not found. Verify Ping Federate configuration and Device Code Grant is enabled.';
+    }
+    return null;
+}
 
 /**
  * Logout - Clear session
@@ -290,7 +410,7 @@ app.post('/auth/logout', (req, res) => {
 
     req.session.save((err) => {
         if (err) {
-            console.error('Error clearing session:', err.message);
+            logError('Session clear failed:', err.message);
         }
         res.redirect('/');
     });
@@ -310,7 +430,7 @@ app.get('/api/user', requireAuthCodeFlow, (req, res) => {
 // Error Handling
 // ============================================
 app.use((err, req, res, next) => {
-    console.error('Server error:', err);
+    logError('Unhandled server error:', err);
     res.status(500).json({
         error: 'Internal server error',
         message: err.message,
@@ -321,7 +441,7 @@ app.use((err, req, res, next) => {
 // Server Start
 // ============================================
 app.listen(PORT, () => {
-    console.log(`
+    logInfo(`
 ╔════════════════════════════════════════════════════════╗
 ║  TV Station App - Authorization Code Grant             ║
 ║  Port: ${PORT}                                        ║
@@ -329,7 +449,7 @@ app.listen(PORT, () => {
 ║  TV Streaming App: ${CONFIG.app.tvStreamingAppUrl}     ║
 ╚════════════════════════════════════════════════════════╝
   `);
-    console.log(`Open http://localhost:${PORT} in your browser`);
+    logInfo(`Open http://localhost:${PORT} in your browser`);
 });
 
 module.exports = app;

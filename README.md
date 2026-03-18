@@ -2,6 +2,14 @@
 
 A sample project demonstrating OAuth 2.0 Device Authorization Grant (RFC 8628) and CIBA (Customer-Initiated Backchannel Authentication) flows with Ping Federate.
 
+## 📖 Documentation Quick Links
+
+- **[Quick Help Guide](QUICK_HELP.md)** — Use this to find what you need
+- **[Network Error Troubleshooting](TROUBLESHOOTING_NETWORK.md)** — "Failed to fetch" and connection errors
+- **[Full Documentation Index](DOCUMENTATION_INDEX.md)** — All documentation files
+- **[API Reference](docs/API.md)** — All endpoints
+- **[Architecture Guide](docs/ARCHITECTURE.md)** — System design
+
 ## Project Overview
 
 ### TV Streaming App (Port 3000)
@@ -302,7 +310,15 @@ PF_ADMIN_API_KEY=<your-admin-api-key>
 
 ## Troubleshooting
 
-### Port Already in Use
+### Quick Links to Detailed Guides
+
+- **[Network Error Troubleshooting](TROUBLESHOOTING_NETWORK.md)** — "Network error: Failed to fetch", connection issues, timeouts, DNS errors
+- **[Error Handling Reference](ERROR_HANDLING.md)** — Detailed explanation of error handling system, error codes, and diagnostics
+- **[Main Troubleshooting Guide](TROUBLESHOOTING.md)** — Port issues, authentication errors, session problems, performance tuning
+
+### Common Quick Fixes
+
+#### Port Already in Use
 ```bash
 # Kill process on port 3000
 lsof -ti:3000 | xargs kill -9
@@ -311,23 +327,31 @@ lsof -ti:3000 | xargs kill -9
 TV_APP_PORT=3002 npm run dev
 ```
 
-### Polling Not Working
+#### Polling Not Working
 - Check browser console for errors (F12)
 - Verify the TV app is running
 - Check network tab in browser dev tools
 - Ensure polling intervals are correct (Device Code: 5 seconds, CIBA: 2 seconds)
 - Verify Ping Federate is accessible and responding
 
-### Session Lost
+#### Session Lost
 - Clear browser cookies for localhost
 - Session timeout is set to 30 minutes by default
 - Check if browser has cookies enabled
 
-### CIBA Request Not Approved
+#### CIBA Request Not Approved
 - Verify phone number is correct and registered in Ping Federate
 - Check that CIBA is enabled in Ping Federate configuration
 - Ensure authenticator app is installed and configured on the device
 - Check Ping Federate logs for approval details
+
+### For "Network error: Failed to fetch"
+
+If you see a "Network error: Failed to fetch" message on the TV Station App, please see [TROUBLESHOOTING_NETWORK.md](TROUBLESHOOTING_NETWORK.md) for:
+- Specific error detection (ECONNREFUSED, ENOTFOUND, ETIMEDOUT, CORS)
+- Step-by-step connectivity testing
+- Ping Federate configuration verification
+- Detailed error message interpretation
 
 ## Project Structure
 
@@ -362,8 +386,17 @@ devicecode/
     └── INTEGRATION_GUIDE.md
 ```
 
-## References
+## References and Documentation
 
+### Project Documentation
+- [Network Error Troubleshooting](TROUBLESHOOTING_NETWORK.md) — Common network errors and solutions
+- [Error Handling Guide](ERROR_HANDLING.md) — Error handling architecture and debugging
+- [Troubleshooting Guide](TROUBLESHOOTING.md) — General troubleshooting for all issues
+- [API Reference](docs/API.md) — Complete API endpoint documentation
+- [Architecture Guide](docs/ARCHITECTURE.md) — System design and flow diagrams
+- [Integration Guide](docs/INTEGRATION_GUIDE.md) — Integration with Ping Federate
+
+### External References
 - RFC 8628: OAuth 2.0 Device Authorization Grant
 - OpenID Connect CIBA (Core 1.0)
 - Ping Federate OAuth 2.0 Documentation

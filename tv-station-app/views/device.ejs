@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -179,6 +180,52 @@
             color: #333;
         }
 
+        .error-details {
+            background: #fef2f2;
+            padding: 12px;
+            border-radius: 4px;
+            border: 1px solid #fecaca;
+            font-size: 13px;
+            color: #7f1d1d;
+            margin-top: 10px;
+        }
+
+        .error-details strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .error-details ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        .error-details li {
+            margin-bottom: 5px;
+        }
+
+        .status-item {
+            color: #666;
+            font-size: 0.9em;
+            padding: 5px 0;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+
+        .tip-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #92400e;
+            margin-top: 10px;
+        }
+
+        .tip-box strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
         .back-link {
             display: block;
             margin-top: 20px;
@@ -219,6 +266,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -230,55 +278,51 @@
             <div class="user-badge">
                 👤 Logged in as: <%= user.preferred_username %>
             </div>
-        <% } %>
+            <% } %>
 
-        <div class="instructions">
-            <strong>How to use:</strong>
-            <ol style="margin-left: 20px;">
-                <li>On your TV, visit <strong>http://[tv-ip]:3000/device-code/request</strong></li>
-                <li>A device code will be displayed (e.g., <span class="code-format">QQWP-TJ6B</span>)</li>
-                <li>Enter that code below</li>
-                <li>Click "Authorize Device" to grant access</li>
-            </ol>
-        </div>
+                <div class="instructions">
+                    <strong>How to use:</strong>
+                    <ol style="margin-left: 20px;">
+                        <li>On your TV, visit <strong>http://[tv-ip]:3000/device-code/request</strong></li>
+                        <li>A device code will be displayed (e.g., <span class="code-format">QQWP-TJ6B</span>)</li>
+                        <li>Enter that code below</li>
+                        <li>Click "Authorize Device" to grant access</li>
+                    </ol>
+                </div>
 
-        <% if (deviceCodeResult && deviceCodeResult.success) { %>
-            <div class="status-message status-success">
-                <div class="status-title">✓ Device Code Authorized Successfully</div>
-                <p>Device code <strong><%= deviceCodeResult.userCode %></strong> was authorized at <%= new Date(deviceCodeResult.timestamp).toLocaleString() %></p>
-                <% if (deviceCodeResult.response) { %>
-                    <div class="response-details">
-                        <strong>Response:</strong><br>
-                        <pre><%= JSON.stringify(deviceCodeResult.response, null, 2) %></pre>
+                <% if (deviceCodeResult && deviceCodeResult.success) { %>
+                    <div class="status-message status-success">
+                        <div class="status-title">✓ Device Code Authorized Successfully</div>
+                        <p>Device code <strong>
+                                <%= deviceCodeResult.userCode %>
+                            </strong> was authorized at <%= new Date(deviceCodeResult.timestamp).toLocaleString() %>
+                        </p>
+                        <% if (deviceCodeResult.response) { %>
+                            <div class="response-details">
+                                <strong>Response:</strong><br>
+                                <pre><%= JSON.stringify(deviceCodeResult.response, null, 2) %></pre>
+                            </div>
+                            <% } %>
                     </div>
-                <% } %>
-            </div>
-        <% } %>
+                    <% } %>
 
-        <form id="deviceForm">
-            <div class="form-group">
-                <label for="userCode">Device Code</label>
-                <input 
-                    type="text" 
-                    id="userCode" 
-                    name="userCode" 
-                    placeholder="e.g., QQWP-TJ6B"
-                    required
-                    pattern="[A-Z0-9\-]+"
-                    maxlength="20"
-                >
-                <div class="form-hint">Enter the code displayed on your TV device</div>
-            </div>
+                        <form id="deviceForm">
+                            <div class="form-group">
+                                <label for="userCode">Device Code</label>
+                                <input type="text" id="userCode" name="userCode" placeholder="e.g., QQWP-TJ6B" required
+                                    pattern="[A-Z0-9\-]+" maxlength="20">
+                                <div class="form-hint">Enter the code displayed on your TV device</div>
+                            </div>
 
-            <div class="button-group">
-                <button type="submit" class="btn-primary" id="authorizeBtn">Authorize Device</button>
-                <a href="/" style="text-decoration: none;">
-                    <button type="button" class="btn-secondary">Back</button>
-                </a>
-            </div>
-        </form>
+                            <div class="button-group">
+                                <button type="submit" class="btn-primary" id="authorizeBtn">Authorize Device</button>
+                                <a href="/" style="text-decoration: none;">
+                                    <button type="button" class="btn-secondary">Back</button>
+                                </a>
+                            </div>
+                        </form>
 
-        <div id="statusMessage"></div>
+                        <div id="statusMessage"></div>
     </div>
 
     <script>
@@ -306,10 +350,28 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
+                    credentials: 'include',
                     body: JSON.stringify({ userCode }),
                 });
 
-                const data = await response.json();
+                // Try to parse response as JSON
+                let data;
+                try {
+                    data = await response.json();
+                } catch (parseError) {
+                    // Response is not valid JSON
+                    const text = await response.text();
+                    showStatus(
+                        `<div class="error-details">
+                            <strong>Invalid Response from Server</strong><br>
+                            Status: ${response.status} ${response.statusText}<br>
+                            Response: ${text || '(empty)'}
+                        </div>`,
+                        'error'
+                    );
+                    authorizeBtn.disabled = false;
+                    return;
+                }
 
                 if (response.ok && data.success) {
                     showStatus(
@@ -322,13 +384,44 @@
                         window.location.reload();
                     }, 2000);
                 } else {
-                    showStatus(
-                        `Error: ${data.error || 'Failed to authorize device'}${data.details ? `<div class="response-details"><pre>${JSON.stringify(data.details, null, 2)}</pre></div>` : ''}`,
-                        'error'
-                    );
+                    // HTTP error or server returned error
+                    let errorDetails = data.error || 'Failed to authorize device';
+                    if (data.hint) {
+                        errorDetails += `<div class="tip-box">
+                            <strong>💡 Troubleshooting Tip:</strong>
+                            ${data.hint}
+                        </div>`;
+                    }
+                    if (data.details) {
+                        errorDetails += `<div class="response-details"><pre>${JSON.stringify(data.details, null, 2)}</pre></div>`;
+                    }
+
+                    // Add HTTP status if not OK
+                    if (!response.ok) {
+                        errorDetails += `<div class="status-item" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+                            <strong>HTTP Status:</strong> ${response.status} ${response.statusText}
+                        </div>`;
+                    }
+
+                    showStatus(`Error: ${errorDetails}`, 'error');
                 }
             } catch (error) {
-                showStatus(`Network error: ${error.message}`, 'error');
+                console.error('Fetch error:', error);
+                showStatus(
+                    `<div class="error-details">
+                        <strong>Network Error</strong><br>
+                        ${error.message}<br><br>
+                        <small>This could mean:</small>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>The server is not responding</li>
+                            <li>The server crashed or restarted</li>
+                            <li>Your connection was interrupted</li>
+                            <li>There's a CORS issue</li>
+                        </ul>
+                        <br>Try refreshing the page and trying again.
+                    </div>`,
+                    'error'
+                );
             } finally {
                 authorizeBtn.disabled = false;
             }
@@ -339,4 +432,5 @@
         }
     </script>
 </body>
+
 </html>

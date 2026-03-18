@@ -176,6 +176,42 @@
             letter-spacing: 2px;
             margin: 20px 0;
             user-select: all;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .code-display:hover {
+            background: #2a2a2a;
+            border-color: #00ff00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+            transform: scale(1.02);
+        }
+
+        .code-display:active {
+            transform: scale(0.98);
+        }
+
+        .copy-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: #00ff00;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 10;
+            white-space: nowrap;
+        }
+
+        .copy-indicator.show {
+            opacity: 1;
         }
 
         .timer {
@@ -376,7 +412,8 @@
             <div class="alert-content">
                 <div class="alert-title">Device Authorization Support</div>
                 <div class="alert-text">
-                    To authorize device codes, visit the <a href="http://localhost:3001" target="_blank">TV Station App</a>. 
+                    To authorize device codes, visit the <a href="http://localhost:3001" target="_blank">TV Station
+                        App</a>.
                     After requesting a device code below, share the code with someone to authorize it through that app.
                 </div>
             </div>
@@ -399,7 +436,9 @@
                 <div id="deviceCodeStatus" class="status-box">
                     <h4>Device Code Active</h4>
                     <p>Ask the user to visit the verification URL and enter the user code:</p>
-                    <div class="code-display" id="userCodeDisplay">--:--:--</div>
+                    <div class="code-display" id="userCodeDisplay" onclick="copyToClipboard(this)">--:--:--
+                        <div class="copy-indicator" id="copyIndicator">✓ Copied!</div>
+                    </div>
                     <p style="text-align: center; color: #666; margin-bottom: 15px;">
                         Verification URL: <code id="verificationUri">...</code>
                     </p>
@@ -502,6 +541,55 @@
     <script>
         let statusCheckInterval;
         let isAuthenticationComplete = false;
+
+        // ============================================
+        // Copy to Clipboard
+        // ============================================
+        function copyToClipboard(element) {
+            const text = element.textContent.trim();
+
+            // Use the modern Clipboard API if available
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showCopyFeedback(element);
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                    fallbackCopyToClipboard(text, element);
+                });
+            } else {
+                // Fallback for older browsers
+                fallbackCopyToClipboard(text, element);
+            }
+        }
+
+        function fallbackCopyToClipboard(text, element) {
+            // Create a temporary textarea element
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+
+            try {
+                textarea.select();
+                document.execCommand('copy');
+                showCopyFeedback(element);
+            } catch (err) {
+                console.error('Fallback copy failed:', err);
+            } finally {
+                document.body.removeChild(textarea);
+            }
+        }
+
+        function showCopyFeedback(element) {
+            const indicator = element.querySelector('.copy-indicator') || document.getElementById('copyIndicator');
+            if (indicator) {
+                indicator.classList.add('show');
+                setTimeout(() => {
+                    indicator.classList.remove('show');
+                }, 2000);
+            }
+        }
 
         // ============================================
         // Device Code Flow
