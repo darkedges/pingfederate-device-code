@@ -1,0 +1,34 @@
+{
+    "name": "device-code-ciba-demo",
+    "version": "1.0.0",
+    "description": "Device Authorization Grant and CIBA Demo with Ping Federate",
+    "main": "index.js",
+    "scripts": {
+        "start": "npm-run-all --parallel start:tv start:station",
+        "dev": "npm-run-all --parallel dev:tv dev:station",
+        "start:tv": "node tv-streaming-app/server.js",
+        "start:station": "node tv-station-app/server.js",
+        "dev:tv": "nodemon tv-streaming-app/server.js",
+        "dev:station": "nodemon tv-station-app/server.js"
+    },
+    "keywords": [
+        "device-code",
+        "ciba",
+        "oauth2",
+        "ping-federate"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "axios": "^1.6.0",
+        "body-parser": "^1.20.2",
+        "express": "^4.18.2",
+        "express-session": "^1.17.3",
+        "ejs": "^3.1.9",
+        "dotenv": "^16.3.1"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.1",
+        "npm-run-all": "^4.1.5"
+    }
+}

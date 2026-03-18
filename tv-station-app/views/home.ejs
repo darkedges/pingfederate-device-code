@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TV Station - Device Code Authorization</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .logo {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .status {
+            background: #f5f5f5;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+
+        .status.authenticated {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .status-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .status-content {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .user-info {
+            background: #f0f4ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .user-info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .user-info-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .user-info-label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .user-info-value {
+            color: #666;
+            word-break: break-all;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-direction: column;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(239, 68, 68, 0.4);
+        }
+
+        .link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .link:hover {
+            text-decoration: underline;
+        }
+
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #444;
+        }
+
+        .info-box strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">📺</div>
+            <h1>TV Station</h1>
+            <p>Device Code Authorization Management</p>
+        </div>
+
+        <% if (isAuthenticated) { %>
+            <div class="status authenticated">
+                <div class="status-title">✓ Authenticated</div>
+                <div class="status-content">You are logged in and can access the device code authorization endpoint.</div>
+            </div>
+
+            <% if (user && user.preferred_username) { %>
+                <div class="user-info">
+                    <div class="user-info-item">
+                        <span class="user-info-label">Username:</span>
+                        <span class="user-info-value"><%= user.preferred_username %></span>
+                    </div>
+                    <% if (user.email) { %>
+                        <div class="user-info-item">
+                            <span class="user-info-label">Email:</span>
+                            <span class="user-info-value"><%= user.email %></span>
+                        </div>
+                    <% } %>
+                    <% if (user.name) { %>
+                        <div class="user-info-item">
+                            <span class="user-info-label">Name:</span>
+                            <span class="user-info-value"><%= user.name %></span>
+                        </div>
+                    <% } %>
+                </div>
+            <% } %>
+
+            <div class="actions">
+                <a href="/device" style="text-decoration: none;">
+                    <button class="btn-primary" style="width: 100%;">Go to Device Code Authorization</button>
+                </a>
+                <form action="/auth/logout" method="POST" style="margin: 0;">
+                    <button type="submit" class="btn-danger" style="width: 100%;">Logout</button>
+                </form>
+            </div>
+
+            <div class="info-box">
+                <strong>📱 Next Steps:</strong>
+                Browse to the TV Streaming App running at <a href="<%= tvStreamingAppUrl %>" target="_blank" class="link"><%= tvStreamingAppUrl %></a> to request a device code. Then return here to authorize it.
+            </div>
+        <% } else { %>
+            <div class="status">
+                <div class="status-title">Not Authenticated</div>
+                <div class="status-content">You need to login first to access the device code authorization endpoint.</div>
+            </div>
+
+            <div class="actions">
+                <a href="/auth/login" style="text-decoration: none;">
+                    <button class="btn-primary" style="width: 100%;">Login with Ping Federate</button>
+                </a>
+            </div>
+
+            <div class="info-box">
+                <strong>How it works:</strong>
+                <ol style="margin-left: 20px; margin-top: 10px;">
+                    <li>Click the login button above</li>
+                    <li>Authenticate with your Ping Federate credentials</li>
+                    <li>Access the device code authorization endpoint</li>
+                    <li>Enter device codes from TV devices to authorize them</li>
+                </ol>
+            </div>
+        <% } %>
+    </div>
+</body>
+</html>

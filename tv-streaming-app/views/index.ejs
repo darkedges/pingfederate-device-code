@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TV Streaming App - Device Code & CIBA Auth</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon {
+            font-size: 1.5em;
+        }
+
+        .card p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            font-size: 0.95em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button.secondary {
+            background: #f0f0f0;
+            color: #333;
+            margin-top: 10px;
+        }
+
+        .button.secondary:hover {
+            background: #e0e0e0;
+            box-shadow: none;
+        }
+
+        .status-box {
+            background: #f5f5f5;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .status-box.active {
+            display: block;
+        }
+
+        .status-box h4 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .status-item {
+            color: #666;
+            font-size: 0.9em;
+            padding: 5px 0;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+
+        .code-display {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 2em;
+            text-align: center;
+            letter-spacing: 2px;
+            margin: 20px 0;
+            user-select: all;
+        }
+
+        .timer {
+            color: #999;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .success.active {
+            display: block;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        .status-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+        }
+
+        .status-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-item {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-label {
+            color: #999;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            color: #333;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s ease infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .userinfo-modal {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            margin-top: 20px;
+            display: none;
+        }
+
+        .userinfo-modal.active {
+            display: block;
+        }
+
+        .userinfo-modal h3 {
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .userinfo-modal .close-btn {
+            background: #f0f0f0;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.2em;
+            color: #666;
+        }
+
+        .userinfo-modal .close-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .userinfo-content {
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #333;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+        }
+
+        .alert {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .alert-text {
+            font-size: 0.95em;
+            opacity: 0.95;
+        }
+
+        .alert a {
+            color: #fff;
+            font-weight: 600;
+            text-decoration: underline;
+        }
+
+        .alert a:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📺 TV Streaming App</h1>
+            <p>Device Authorization Grant & CIBA Authentication Demo</p>
+        </div>
+
+        <!-- TV Station App Notice -->
+        <div class="alert">
+            <div style="font-size: 2em;">⚙️</div>
+            <div class="alert-content">
+                <div class="alert-title">Device Authorization Support</div>
+                <div class="alert-text">
+                    To authorize device codes, visit the <a href="http://localhost:3001" target="_blank">TV Station App</a>. 
+                    After requesting a device code below, share the code with someone to authorize it through that app.
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-grid">
+            <!-- Device Code Flow Card -->
+            <div class="card">
+                <h2><span class="icon">📱</span> Device Code Flow</h2>
+                <p>Authenticate on another device by showing the device code. Perfect for devices without keyboards or
+                    browsers.</p>
+
+                <div id="deviceCodeForm">
+                    <button class="button" onclick="requestDeviceCode()">
+                        Request Device Code
+                    </button>
+                </div>
+
+                <div id="deviceCodeStatus" class="status-box">
+                    <h4>Device Code Active</h4>
+                    <p>Ask the user to visit the verification URL and enter the user code:</p>
+                    <div class="code-display" id="userCodeDisplay">--:--:--</div>
+                    <p style="text-align: center; color: #666; margin-bottom: 15px;">
+                        Verification URL: <code id="verificationUri">...</code>
+                    </p>
+                    <div class="timer">
+                        Elapsed: <span id="deviceTimer">0</span>s / Expires in: <span id="deviceExpires">1800</span>s
+                    </div>
+                    <button class="button secondary" onclick="cancelDeviceFlow()">Cancel</button>
+                </div>
+
+                <div id="deviceCodeSuccess" class="success">
+                    <strong>✓ Device Code Authentication Successful!</strong><br>
+                    Your device has been authenticated. You can now access the TV streaming app.
+                </div>
+
+                <div id="deviceCodeError" class="error"></div>
+            </div>
+
+            <!-- CIBA Flow Card -->
+            <div class="card">
+                <h2><span class="icon">📞</span> CIBA (Backchannel Auth)</h2>
+                <p>Send an authentication request to a user's phone number. They approve on their mobile device.</p>
+
+                <div id="cibaForm">
+                    <div class="form-group">
+                        <label for="phoneNumber">Phone Number:</label>
+                        <input type="tel" id="phoneNumber" placeholder="0400070562" value="0400070562">
+                    </div>
+                    <button class="button" onclick="requestCIBA()">
+                        Send Authentication Request
+                    </button>
+                </div>
+
+                <div id="cibaStatus" class="status-box">
+                    <h4>CIBA Request Active</h4>
+                    <p>Authentication request sent to phone:</p>
+                    <div class="status-item" style="font-size: 1.2em; margin: 15px 0;">
+                        <strong id="cibaPhoneDisplay">--</strong>
+                    </div>
+                    <p style="color: #666; margin: 15px 0;">
+                        The user will receive a push notification on their mobile device. They can approve or deny the
+                        authentication request.
+                    </p>
+                    <div class="timer">
+                        Elapsed: <span id="cibaTimer">0</span>s / Expires in: <span id="cibaExpires">600</span>s
+                    </div>
+                    <button class="button secondary" onclick="cancelCIBAFlow()">Cancel</button>
+                </div>
+
+                <div id="cibaSuccess" class="success">
+                    <strong>✓ CIBA Authentication Successful!</strong><br>
+                    User approved the authentication on their mobile device.
+                </div>
+
+                <div id="cibaError" class="error"></div>
+            </div>
+        </div>
+
+        <!-- Status Dashboard -->
+        <div class="status-section">
+            <h2>Current Status</h2>
+            <div class="status-grid" id="statusGrid">
+                <div class="stat-item">
+                    <div class="stat-label">Authentication Status</div>
+                    <div class="stat-value" id="authStatus">Not Authenticated</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Active Flow</div>
+                    <div class="stat-value" id="activeFlow">None</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Access Token</div>
+                    <div class="stat-value" id="tokenStatus">None</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">User Info</div>
+                    <div class="stat-value" id="userInfoLink">
+                        <button class="button" onclick="getUserInfo()" style="font-size: 0.9em;">
+                            Fetch User Info
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <button class="button secondary" onclick="logout()" style="margin-top: 20px;">
+                Logout
+            </button>
+
+            <!-- User Info Modal -->
+            <div id="userInfoModal" class="userinfo-modal">
+                <h3>
+                    👤 User Information
+                    <button class="close-btn" onclick="closeUserInfo()">✕</button>
+                </h3>
+                <div class="userinfo-content" id="userInfoContent">
+                    Loading...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let statusCheckInterval;
+        let isAuthenticationComplete = false;
+
+        // ============================================
+        // Device Code Flow
+        // ============================================
+        async function requestDeviceCode() {
+            try {
+                const response = await fetch('/device-code/request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('userCodeDisplay').textContent = data.userCode;
+                    document.getElementById('verificationUri').textContent = data.verificationUri;
+                    document.getElementById('deviceExpires').textContent = data.expiresIn;
+
+                    document.getElementById('deviceCodeForm').style.display = 'none';
+                    document.getElementById('deviceCodeStatus').classList.add('active');
+
+                    startDeviceTimer();
+                    startStatusCheck();
+                } else {
+                    showDeviceError(data.error);
+                }
+            } catch (error) {
+                showDeviceError('Failed to request device code: ' + error.message);
+            }
+        }
+
+        function cancelDeviceFlow() {
+            document.getElementById('deviceCodeForm').style.display = 'block';
+            document.getElementById('deviceCodeStatus').classList.remove('active');
+            document.getElementById('deviceCodeSuccess').classList.remove('active');
+            document.getElementById('deviceCodeError').classList.remove('active');
+            clearInterval(statusCheckInterval);
+            isAuthenticationComplete = false;
+        }
+
+        function startDeviceTimer() {
+            let elapsed = 0;
+            const maxTime = parseInt(document.getElementById('deviceExpires').textContent);
+
+            setInterval(() => {
+                elapsed++;
+                if (elapsed <= maxTime) {
+                    document.getElementById('deviceTimer').textContent = elapsed;
+                }
+            }, 1000);
+        }
+
+        // ============================================
+        // CIBA Flow
+        // ============================================
+        async function requestCIBA() {
+            const phoneNumber = document.getElementById('phoneNumber').value;
+
+            if (!phoneNumber) {
+                showCIBAError('Please enter a phone number');
+                return;
+            }
+
+            try {
+                const response = await fetch('/ciba/request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phoneNumber })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('cibaPhoneDisplay').textContent = phoneNumber;
+                    document.getElementById('cibaExpires').textContent = data.expiresIn;
+
+                    document.getElementById('cibaForm').style.display = 'none';
+                    document.getElementById('cibaStatus').classList.add('active');
+
+                    startCIBATimer();
+                    startStatusCheck();
+                } else {
+                    showCIBAError(data.error);
+                }
+            } catch (error) {
+                showCIBAError('Failed to request CIBA: ' + error.message);
+            }
+        }
+
+        function cancelCIBAFlow() {
+            document.getElementById('cibaForm').style.display = 'block';
+            document.getElementById('cibaStatus').classList.remove('active');
+            document.getElementById('cibaSuccess').classList.remove('active');
+            document.getElementById('cibaError').classList.remove('active');
+            clearInterval(statusCheckInterval);
+            isAuthenticationComplete = false;
+        }
+
+        function startCIBATimer() {
+            let elapsed = 0;
+            const maxTime = parseInt(document.getElementById('cibaExpires').textContent);
+
+            setInterval(() => {
+                elapsed++;
+                if (elapsed <= maxTime) {
+                    document.getElementById('cibaTimer').textContent = elapsed;
+                }
+            }, 1000);
+        }
+
+        // ============================================
+        // Status Management
+        // ============================================
+        async function startStatusCheck() {
+            statusCheckInterval = setInterval(async () => {
+                // Skip polling if authentication is already complete
+                if (isAuthenticationComplete) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/status');
+                    const status = await response.json();
+
+                    // Update auth status
+                    if (status.authenticated) {
+                        document.getElementById('authStatus').textContent = '✓ Authenticated';
+                        document.getElementById('authStatus').style.color = '#28a745';
+                        document.getElementById('deviceCodeStatus').classList.remove('active');
+                        document.getElementById('cibaStatus').classList.remove('active');
+                        document.getElementById('deviceCodeSuccess').classList.add('active');
+                        document.getElementById('cibaSuccess').classList.add('active');
+
+                        // Mark authentication as complete and stop polling
+                        isAuthenticationComplete = true;
+                        clearInterval(statusCheckInterval);
+                        console.log('✓ Authentication successful - polling stopped');
+                        return;
+                    } else {
+                        document.getElementById('authStatus').textContent = 'Pending...';
+                    }
+
+                    // Update active flow
+                    let activeFlow = 'None';
+                    if (status.deviceCode.active) activeFlow = 'Device Code';
+                    if (status.ciba.active) activeFlow = 'CIBA';
+                    document.getElementById('activeFlow').textContent = activeFlow;
+
+                    // Update token status
+                    if (status.token) {
+                        document.getElementById('tokenStatus').textContent = 'Present';
+                    }
+                } catch (error) {
+                    console.error('Status check failed:', error);
+                }
+            }, 2000);
+        }
+
+        async function logout() {
+            try {
+                await fetch('/logout', { method: 'POST' });
+                location.reload();
+            } catch (error) {
+                alert('Failed to logout: ' + error.message);
+            }
+        }
+
+        async function getUserInfo() {
+            try {
+                const response = await fetch('/userinfo');
+                const data = await response.json();
+
+                if (data.success) {
+                    const userInfoContent = document.getElementById('userInfoContent');
+                    userInfoContent.textContent = JSON.stringify(data.userInfo, null, 2);
+                    document.getElementById('userInfoModal').classList.add('active');
+                } else {
+                    const userInfoContent = document.getElementById('userInfoContent');
+                    userInfoContent.textContent = 'Error: ' + data.error;
+                    document.getElementById('userInfoModal').classList.add('active');
+                }
+            } catch (error) {
+                const userInfoContent = document.getElementById('userInfoContent');
+                userInfoContent.textContent = 'Failed to fetch user info: ' + error.message;
+                document.getElementById('userInfoModal').classList.add('active');
+            }
+        }
+
+        function closeUserInfo() {
+            document.getElementById('userInfoModal').classList.remove('active');
+        }
+
+        function showDeviceError(message) {
+            const errorBox = document.getElementById('deviceCodeError');
+            errorBox.textContent = '✗ Error: ' + message;
+            errorBox.classList.add('active');
+        }
+
+        function showCIBAError(message) {
+            const errorBox = document.getElementById('cibaError');
+            errorBox.textContent = '✗ Error: ' + message;
+            errorBox.classList.add('active');
+        }
+    </script>
+</body>
+
+</html>

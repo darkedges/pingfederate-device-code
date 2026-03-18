@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Code Authorization - TV Station</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .user-badge {
+            display: inline-block;
+            background: #e0e7ff;
+            color: #667eea;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 5px;
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #f9fafb;
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+            transform: translateY(-2px);
+        }
+
+        .status-message {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .status-success {
+            background: #f0fdf4;
+            border-left: 4px solid #10b981;
+            color: #065f46;
+        }
+
+        .status-error {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            color: #7f1d1d;
+        }
+
+        .status-loading {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            color: #3730a3;
+        }
+
+        .status-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .response-details {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 10px;
+            color: #333;
+        }
+
+        .back-link {
+            display: block;
+            margin-top: 20px;
+            text-align: center;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .instructions {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+            font-size: 14px;
+            color: #444;
+        }
+
+        .instructions strong {
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .code-format {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            color: #d946ef;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📺 Device Code Authorization</h1>
+            <p>Enter the device code from your TV to authorize it</p>
+        </div>
+
+        <% if (user && user.preferred_username) { %>
+            <div class="user-badge">
+                👤 Logged in as: <%= user.preferred_username %>
+            </div>
+        <% } %>
+
+        <div class="instructions">
+            <strong>How to use:</strong>
+            <ol style="margin-left: 20px;">
+                <li>On your TV, visit <strong>http://[tv-ip]:3000/device-code/request</strong></li>
+                <li>A device code will be displayed (e.g., <span class="code-format">QQWP-TJ6B</span>)</li>
+                <li>Enter that code below</li>
+                <li>Click "Authorize Device" to grant access</li>
+            </ol>
+        </div>
+
+        <% if (deviceCodeResult && deviceCodeResult.success) { %>
+            <div class="status-message status-success">
+                <div class="status-title">✓ Device Code Authorized Successfully</div>
+                <p>Device code <strong><%= deviceCodeResult.userCode %></strong> was authorized at <%= new Date(deviceCodeResult.timestamp).toLocaleString() %></p>
+                <% if (deviceCodeResult.response) { %>
+                    <div class="response-details">
+                        <strong>Response:</strong><br>
+                        <pre><%= JSON.stringify(deviceCodeResult.response, null, 2) %></pre>
+                    </div>
+                <% } %>
+            </div>
+        <% } %>
+
+        <form id="deviceForm">
+            <div class="form-group">
+                <label for="userCode">Device Code</label>
+                <input 
+                    type="text" 
+                    id="userCode" 
+                    name="userCode" 
+                    placeholder="e.g., QQWP-TJ6B"
+                    required
+                    pattern="[A-Z0-9\-]+"
+                    maxlength="20"
+                >
+                <div class="form-hint">Enter the code displayed on your TV device</div>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="btn-primary" id="authorizeBtn">Authorize Device</button>
+                <a href="/" style="text-decoration: none;">
+                    <button type="button" class="btn-secondary">Back</button>
+                </a>
+            </div>
+        </form>
+
+        <div id="statusMessage"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('deviceForm');
+        const statusMessage = document.getElementById('statusMessage');
+        const authorizeBtn = document.getElementById('authorizeBtn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const userCode = document.getElementById('userCode').value.trim();
+
+            if (!userCode) {
+                showStatus('Please enter a device code', 'error');
+                return;
+            }
+
+            // Show loading state
+            authorizeBtn.disabled = true;
+            showStatus('Authorizing device code...', 'loading');
+
+            try {
+                const response = await fetch('/device/authorize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ userCode }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showStatus(
+                        `✓ Device authorized successfully!<div class="response-details"><pre>${JSON.stringify(data.details, null, 2)}</pre></div>`,
+                        'success'
+                    );
+                    form.reset();
+                    // Reload page after 2 seconds to show updated status
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    showStatus(
+                        `Error: ${data.error || 'Failed to authorize device'}${data.details ? `<div class="response-details"><pre>${JSON.stringify(data.details, null, 2)}</pre></div>` : ''}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                showStatus(`Network error: ${error.message}`, 'error');
+            } finally {
+                authorizeBtn.disabled = false;
+            }
+        });
+
+        function showStatus(message, type) {
+            statusMessage.innerHTML = `<div class="status-message status-${type}"><div class="status-title">${type === 'success' ? '✓ Success' : type === 'error' ? '✗ Error' : '⏳ Loading'}</div>${message}</div>`;
+        }
+    </script>
+</body>
+</html>
