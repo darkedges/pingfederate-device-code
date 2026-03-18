@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Device Authorization Grant — PingFederate Integration Guide</title>
+<style>
+  :root {
+    --blue-dark:    #1D4E89;
+    --blue-mid:     #2E75B6;
+    --blue-light:   #D6E4F0;
+    --blue-pale:    #EBF4FB;
+    --teal:         #0B6E6E;
+    --teal-light:   #D4EDEA;
+    --orange:       #C45E0E;
+    --orange-light: #FDE8D8;
+    --green:        #1D6B3A;
+    --green-light:  #D4EDDA;
+    --purple:       #5E3B8A;
+    --purple-light: #EEE6FB;
+    --red:          #9B1C1C;
+    --red-light:    #FDE8E8;
+    --gray-dark:    #1E1E2E;
+    --gray-mid:     #595959;
+    --gray-light:   #F4F5F7;
+    --gray-border:  #D1D5DB;
+    --code-bg:      #1E1E2E;
+    --code-fg:      #CDD6F4;
+    --font-body:    'Segoe UI', system-ui, sans-serif;
+    --font-mono:    'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.75;
+    color: #2C2C2C;
+    background: #FFFFFF;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 32px 80px;
+  }
+  .page-banner {
+    background: linear-gradient(135deg, var(--blue-dark) 0%, #2563EB 100%);
+    margin: 0 -32px 0;
+    padding: 48px 40px 36px;
+    position: relative;
+    overflow: hidden;
+  }
+  .page-banner::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 260px; height: 260px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+  }
+  .banner-label { font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #93C5FD; margin-bottom: 10px; }
+  .banner-title { font-size: 32px; font-weight: 700; color: #FFFFFF; line-height: 1.2; margin-bottom: 6px; }
+  .banner-sub   { font-size: 16px; color: #BFDBFE; margin-bottom: 28px; }
+  .banner-meta  { display: flex; gap: 32px; flex-wrap: wrap; }
+  .meta-item    { font-size: 12px; }
+  .meta-label   { color: #93C5FD; display: block; margin-bottom: 2px; }
+  .meta-value   { color: #FFFFFF; font-weight: 600; font-size: 13px; }
+  .toc-box {
+    background: var(--blue-pale);
+    border: 1px solid var(--blue-light);
+    border-left: 4px solid var(--blue-mid);
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin: 32px 0 40px;
+  }
+  .toc-title { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--blue-dark); margin-bottom: 12px; }
+  .toc-list  { list-style: none; columns: 2; column-gap: 32px; }
+  .toc-list li { margin-bottom: 4px; break-inside: avoid; }
+  .toc-list a  { font-size: 13px; color: var(--blue-mid); text-decoration: none; display: flex; align-items: baseline; gap: 8px; }
+  .toc-list a:hover { text-decoration: underline; }
+  .toc-num { font-size: 11px; color: var(--blue-mid); opacity: 0.6; min-width: 20px; }
+  h1 {
+    font-size: 22px; font-weight: 700; color: var(--blue-dark);
+    margin: 48px 0 16px; padding-bottom: 10px;
+    border-bottom: 2px solid var(--blue-light);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .h1-num {
+    background: var(--blue-dark); color: white; font-size: 12px; font-weight: 700;
+    width: 26px; height: 26px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  h2 { font-size: 17px; font-weight: 600; color: var(--blue-mid); margin: 32px 0 12px; }
+  h3 { font-size: 13px; font-weight: 700; color: var(--teal); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  p  { margin: 0 0 12px; }
+  .callout {
+    border-radius: 6px; padding: 14px 18px; margin: 16px 0;
+    border-left: 4px solid; font-size: 13.5px; line-height: 1.6;
+  }
+  .callout-title { font-weight: 700; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+  .callout.info    { background: var(--blue-pale);    border-color: var(--blue-mid);  color: var(--blue-dark); }
+  .callout.warning { background: #FFFBEB;              border-color: #D97706;          color: #92400E; }
+  .callout.danger  { background: var(--red-light);    border-color: var(--red);       color: var(--red); }
+  .callout.success { background: var(--green-light);  border-color: var(--green);     color: var(--green); }
+  .callout.purple  { background: var(--purple-light); border-color: var(--purple);    color: var(--purple); }
+  .callout.teal    { background: var(--teal-light);   border-color: var(--teal);      color: var(--teal); }
+  pre {
+    background: var(--code-bg); border-radius: 8px; padding: 20px 24px;
+    margin: 8px 0 20px; overflow-x: auto;
+    font-family: var(--font-mono); font-size: 13px; line-height: 1.6; color: var(--code-fg);
+  }
+  .code-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #6B7280; margin-bottom: 4px; }
+  code { font-family: var(--font-mono); font-size: 12.5px; }
+  p code, li code, td code { background: #F3F4F6; color: #9B1C1C; padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+  .kw  { color: #CBA6F7; } .st  { color: #A6E3A1; } .cm  { color: #6C7086; font-style: italic; }
+  .fn  { color: #89B4FA; } .nm  { color: #FAB387; } .ky  { color: #F38BA8; }
+  .vl  { color: #A6E3A1; } .op  { color: #89DCEB; } .hd  { color: #89B4FA; font-weight: bold; }
+  .url { color: #FAB387; } .pr  { color: #CDD6F4; }
+  .table-wrap { overflow-x: auto; margin: 16px 0 24px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: var(--blue-dark); color: #FFFFFF; font-weight: 600; font-size: 12px;
+    padding: 10px 14px; text-align: left; letter-spacing: 0.3px;
+  }
+  thead th:first-child { border-radius: 6px 0 0 0; }
+  thead th:last-child  { border-radius: 0 6px 0 0; }
+  tbody tr:nth-child(even) { background: var(--gray-light); }
+  tbody tr:hover { background: var(--blue-pale); }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--gray-border); vertical-align: top; line-height: 1.5; }
+  td:first-child { font-weight: 500; color: #1E293B; }
+  ul, ol { padding-left: 24px; margin: 8px 0 16px; font-size: 14px; }
+  li { margin-bottom: 6px; line-height: 1.6; }
+  .step-flow { display: flex; flex-direction: column; margin: 20px 0; }
+  .step { display: flex; gap: 16px; align-items: flex-start; }
+  .step-line { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+  .step-dot {
+    width: 32px; height: 32px; border-radius: 50%; background: var(--blue-mid);
+    color: white; font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .step-connector { width: 2px; flex: 1; min-height: 20px; background: var(--blue-light); }
+  .step-content { padding: 4px 0 24px; flex: 1; }
+  .step-title { font-size: 14px; font-weight: 700; color: var(--blue-dark); margin-bottom: 4px; }
+  .step-desc  { font-size: 13px; color: var(--gray-mid); }
+  .divider { height: 1px; background: linear-gradient(to right, var(--blue-light), transparent); margin: 40px 0 0; }
+  .checklist { list-style: none; padding: 0; }
+  .checklist li {
+    display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px;
+    padding: 8px 12px; border-bottom: 1px solid var(--gray-border);
+  }
+  .checklist li:last-child { border-bottom: none; }
+  .check-box  { width: 18px; height: 18px; border: 2px solid var(--gray-border); border-radius: 4px; flex-shrink: 0; margin-top: 2px; }
+  .check-num  { font-size: 11px; font-weight: 700; color: var(--blue-mid); min-width: 22px; margin-top: 2px; }
+  .check-text { flex: 1; }
+  .check-expect { font-size: 12px; color: var(--gray-mid); margin-top: 2px; }
+  .method { display: inline-block; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px; letter-spacing: 0.5px; }
+  .method.post { background: #FEF3C7; color: #92400E; }
+  .method.get  { background: #D1FAE5; color: #065F46; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px; }
+  .badge.rfc  { background: var(--blue-pale); color: var(--blue-dark); }
+  .badge.new  { background: #D1FAE5; color: #065F46; }
+  .badge.beta { background: var(--purple-light); color: var(--purple); }
+  .page-footer {
+    border-top: 1px solid var(--gray-border); margin-top: 60px; padding-top: 20px;
+    font-size: 12px; color: var(--gray-mid);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-banner">
+  <div class="banner-label">IAM Platform Team · OAuth 2.0 Integration Guide</div>
+  <div class="banner-title">Device Authorization Grant</div>
+  <div class="banner-sub">PingFederate Configuration, OIDC &amp; CIBA Reference</div>
+  <div class="banner-meta">
+    <div class="meta-item"><span class="meta-label">Version</span><span class="meta-value">1.3</span></div>
+    <div class="meta-item"><span class="meta-label">Last Updated</span><span class="meta-value">March 2026</span></div>
+    <div class="meta-item"><span class="meta-label">Author</span><span class="meta-value">IAM Platform Team</span></div>
+    <div class="meta-item"><span class="meta-label">PingFederate</span><span class="meta-value">11.1 – 12.x</span></div>
+    <div class="meta-item"><span class="meta-label">Status</span><span class="meta-value">✓ Active</span></div>
+  </div>
+</div>
+
+<div class="toc-box">
+  <div class="toc-title">📋 Contents</div>
+  <ul class="toc-list">
+    <li><a href="#s1"><span class="toc-num">1</span>Overview</a></li>
+    <li><a href="#s2"><span class="toc-num">2</span>Prerequisites</a></li>
+    <li><a href="#s3"><span class="toc-num">3</span>PingFederate Configuration</a></li>
+    <li><a href="#s4"><span class="toc-num">4</span>OIDC Configuration</a></li>
+    <li><a href="#s5"><span class="toc-num">5</span>CIBA / Backchannel Auth</a></li>
+    <li><a href="#s6"><span class="toc-num">6</span>Endpoint Reference</a></li>
+    <li><a href="#s7"><span class="toc-num">7</span>Request &amp; Response Examples</a></li>
+    <li><a href="#s8"><span class="toc-num">8</span>Code Examples</a></li>
+    <li><a href="#s9"><span class="toc-num">9</span>Security Considerations</a></li>
+    <li><a href="#s10"><span class="toc-num">10</span>Troubleshooting</a></li>
+    <li><a href="#s11"><span class="toc-num">11</span>Pre-Go-Live Checklist</a></li>
+    <li><a href="#s12"><span class="toc-num">12</span>Related Resources</a></li>
+  </ul>
+</div>
+
+<!-- 1. OVERVIEW -->
+<h1 id="s1"><span class="h1-num">1</span>Overview</h1>
+<p>The <strong>OAuth 2.0 Device Authorization Grant</strong> <span class="badge rfc">RFC 8628</span> enables devices with limited or no browser capability to obtain an access token on behalf of a user. Common examples include smart TVs, set-top boxes, IoT sensors, CLI tools, and kiosks that cannot host a redirect-based login flow.</p>
+<p>PingFederate supports this grant natively from version 11.1 onward and integrates cleanly with OpenID Connect (OIDC) for identity tokens and OpenID Connect Client-Initiated Backchannel Authentication (CIBA) <span class="badge rfc">RFC 9126</span> for fully decoupled push-based authentication.</p>
+
+<h2>1.1 When to Use This Grant Type</h2>
+<div class="callout warning">
+  <div class="callout-title">⚠ Not Appropriate For</div>
+  Do <strong>not</strong> use this grant for web apps or mobile apps that can host a redirect URI. Use Authorization Code + PKCE for those cases. The Device Authorization Grant is strictly for constrained devices.
+</div>
+<p>Use the Device Authorization Grant when <em>all</em> of these apply:</p>
+<ul>
+  <li>The device cannot open or redirect to a browser (TV, CLI, headless IoT).</li>
+  <li>The device can display a short URI and user code on-screen, via serial console, or printed label.</li>
+  <li>A secondary device (phone, laptop) is available for the user to complete login.</li>
+  <li>PingFederate is the authorization server with Device Authorization enabled.</li>
+</ul>
+
+<h2>1.2 Four-Step Flow</h2>
+<div class="step-flow">
+  <div class="step">
+    <div class="step-line"><div class="step-dot">1</div><div class="step-connector"></div></div>
+    <div class="step-content">
+      <div class="step-title">Device Registration</div>
+      <div class="step-desc">Device POSTs to <code>/as/device_authz</code> and receives a <code>device_code</code>, <code>user_code</code>, and <code>verification_uri</code>.</div>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-line"><div class="step-dot">2</div><div class="step-connector"></div></div>
+    <div class="step-content">
+      <div class="step-title">User Action</div>
+      <div class="step-desc">User visits the verification URI on a secondary device and enters the user code. PingFederate presents login (and optionally MFA and consent).</div>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-line"><div class="step-dot">3</div><div class="step-connector"></div></div>
+    <div class="step-content">
+      <div class="step-title">Device Polling</div>
+      <div class="step-desc">Device polls <code>/as/token.oauth2</code> at the specified <code>interval</code> until authorization completes or the code expires.</div>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-line"><div class="step-dot">4</div><div class="step-connector" style="background:transparent"></div></div>
+    <div class="step-content">
+      <div class="step-title">Token Issuance</div>
+      <div class="step-desc">PingFederate returns an <code>access_token</code>, optionally a <code>refresh_token</code>, and — when OIDC scopes are requested — an <code>id_token</code>.</div>
+    </div>
+  </div>
+</div>
+<div class="divider"></div>
+
+<!-- 2. PREREQUISITES -->
+<h1 id="s2"><span class="h1-num">2</span>Prerequisites</h1>
+<div class="table-wrap"><table>
+  <thead><tr><th>Requirement</th><th>Details</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>PingFederate version</td><td>11.1 or later</td><td>Device Authorization GA in 11.1; CIBA requires 11.3+</td></tr>
+    <tr><td>License</td><td>PingFederate base license</td><td>No add-on required for Device Authorization or OIDC</td></tr>
+    <tr><td>OAuth 2.0 enabled</td><td>OAuth AS role active</td><td>System → Server Settings → Roles &amp; Protocols</td></tr>
+    <tr><td>OIDC enabled</td><td>Yes — for <code>id_token</code> issuance</td><td>Must enable OpenID Connect in AS Settings</td></tr>
+    <tr><td>CIBA enabled</td><td>PF 11.3+ with CIBA feature flag</td><td>Requires a CIBA-capable authentication policy</td></tr>
+    <tr><td>Client registration</td><td>Public or Confidential client</td><td>Public clients do not use <code>client_secret</code></td></tr>
+    <tr><td>Network access</td><td>Device must reach PF token endpoint</td><td>Outbound HTTPS on port 443</td></tr>
+    <tr><td>Secondary device</td><td>Phone or laptop with browser</td><td>Required for user to enter code (not needed for CIBA)</td></tr>
+  </tbody>
+</table></div>
+<div class="divider"></div>
+
+<!-- 3. PINGFEDERATE CONFIGURATION -->
+<h1 id="s3"><span class="h1-num">3</span>PingFederate Configuration</h1>
+
+<h2>3.1 Enable Device Authorization Grant</h2>
+<p>Navigate to: <code>OAuth Settings → Authorization Server Settings → Grant Types</code></p>
+<ol>
+  <li>Check <strong>Device Authorization Grant</strong>.</li>
+  <li>Click <strong>Save</strong>.</li>
+</ol>
+<div class="callout info">
+  <div class="callout-title">ℹ Version Note</div>
+  In PingFederate 12.x the path is <strong>System → OAuth Server → Authorization Server Settings → Grant Types</strong>.
+</div>
+
+<h2>3.2 Device Authorization Settings</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Parameter</th><th>Recommended Value</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td>Device Authorization Lifetime</td><td>600 seconds</td><td>How long <code>device_code</code> and <code>user_code</code> remain valid. Maximum recommended: 900 s.</td></tr>
+    <tr><td>Device Polling Interval</td><td>5 seconds</td><td>Minimum wait between poll requests. Enforced server-side.</td></tr>
+    <tr><td>Pending Authorization Timeout</td><td>600 seconds</td><td>Should equal or be slightly less than Lifetime.</td></tr>
+    <tr><td>User Code Length</td><td>8 characters</td><td>Longer codes are harder to guess but harder to type.</td></tr>
+    <tr><td>User Code Character Set</td><td><code>BCDFGHJKLMNPQRSTVWXZ</code></td><td>Consonants only — avoids ambiguous 0/O and 1/I/L.</td></tr>
+    <tr><td>Verification URI</td><td><code>https://auth.example.com/device</code></td><td>Displayed to users. Use a short URL or QR code where possible.</td></tr>
+  </tbody>
+</table></div>
+
+<h2>3.3 Create an OAuth Client</h2>
+<p>Navigate to: <code>OAuth Settings → Clients → Create New</code></p>
+<h3>Client Settings</h3>
+<div class="table-wrap"><table>
+  <thead><tr><th>Field</th><th>Value</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>Client ID</td><td><code>my-device-client</code></td><td>Unique identifier — use a descriptive name.</td></tr>
+    <tr><td>Client Authentication</td><td>None (Public) or <code>client_secret_basic</code></td><td>Public for embedded devices; confidential when secret can be secured.</td></tr>
+    <tr><td>Allowed Grant Types</td><td>Device Authorization, Refresh Token</td><td>Add Client Credentials if M2M flows also needed.</td></tr>
+    <tr><td>Redirect URIs</td><td>Leave blank</td><td>Not required for device flow.</td></tr>
+    <tr><td>Token Endpoint Auth Method</td><td><code>none</code> or <code>client_secret_basic</code></td><td>Must match your authentication setting above.</td></tr>
+  </tbody>
+</table></div>
+<h3>Token Timeouts</h3>
+<div class="table-wrap"><table>
+  <thead><tr><th>Token Type</th><th>Lifetime</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>Access Token</td><td>3600 s (1 hour)</td><td>Adjust to your security policy.</td></tr>
+    <tr><td>Refresh Token</td><td>86400 s (1 day)</td><td>Only if <code>offline_access</code> scope is granted.</td></tr>
+    <tr><td>ID Token (OIDC)</td><td>3600 s</td><td>Set when OIDC is enabled — see Section 4.</td></tr>
+  </tbody>
+</table></div>
+
+<h2>3.4 Authentication Policy</h2>
+<ol>
+  <li>Go to <strong>Authentication → Policies → OAuth Authentication Policies</strong>.</li>
+  <li>Create or edit a policy scoped to Device Authorization requests.</li>
+  <li>Recommended: apply MFA (PingID, TOTP) as part of the authentication chain.</li>
+  <li>Map user attributes to the access token claim set as required.</li>
+</ol>
+<div class="callout success">
+  <div class="callout-title">✓ Best Practice</div>
+  Apply a <strong>stronger authentication policy</strong> for device flows than for standard browser flows. Because the device is often unattended (e.g., a TV), enforcing MFA on the secondary device provides an additional assurance layer at no cost to the device UX.
+</div>
+<div class="divider"></div>
+
+<!-- 4. OIDC -->
+<h1 id="s4"><span class="h1-num">4</span>OIDC Configuration <span class="badge new">OIDC</span></h1>
+<p>When the device needs to identify the authenticated user — not just authorize API access — use OpenID Connect scopes alongside the Device Authorization Grant. PingFederate will issue an <code>id_token</code> in addition to the <code>access_token</code>.</p>
+
+<h2>4.1 Enable OpenID Connect</h2>
+<p>Navigate to: <code>OAuth Settings → Authorization Server Settings</code></p>
+<ol>
+  <li>Under <strong>OpenID Connect</strong>, check <strong>Enable OpenID Connect</strong>.</li>
+  <li>Set the <strong>ID Token Signing Algorithm</strong> — recommended: <code>RS256</code>.</li>
+  <li>Confirm the <strong>JWKS Endpoint</strong> is active (required for consumers to validate the <code>id_token</code> signature).</li>
+  <li>Click <strong>Save</strong>.</li>
+</ol>
+
+<h2>4.2 Standard OIDC Scopes</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Scope</th><th>Claims Included</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td><code>openid</code></td><td><code>sub</code>, <code>iss</code>, <code>aud</code>, <code>exp</code>, <code>iat</code></td><td><strong>Required</strong> to trigger ID token issuance.</td></tr>
+    <tr><td><code>profile</code></td><td><code>name</code>, <code>given_name</code>, <code>family_name</code>, <code>picture</code>, <code>updated_at</code></td><td>Basic user profile.</td></tr>
+    <tr><td><code>email</code></td><td><code>email</code>, <code>email_verified</code></td><td>User's email address.</td></tr>
+    <tr><td><code>phone</code></td><td><code>phone_number</code>, <code>phone_number_verified</code></td><td>Include if needed by the device use case.</td></tr>
+    <tr><td><code>offline_access</code></td><td>N/A — enables refresh tokens</td><td>Request this scope to receive a <code>refresh_token</code>.</td></tr>
+  </tbody>
+</table></div>
+
+<h2>4.3 Attribute Contract &amp; Token Mapping</h2>
+<ol>
+  <li>Navigate to <code>OAuth Settings → Clients → [your client] → Attribute Mapping</code>.</li>
+  <li>Map your identity store attributes (LDAP, PingDirectory) to the OIDC claim names above.</li>
+  <li>Set <code>sub</code> to an <strong>immutable</strong> user identifier (e.g. <code>uid</code> or <code>objectGUID</code>) — never a mutable attribute like email.</li>
+  <li>Set the <strong>ID Token Lifetime</strong> (e.g. 3600 seconds).</li>
+</ol>
+
+<h2>4.4 OIDC Device Authorization Request</h2>
+<div class="code-label">POST /as/device_authz — with OIDC scopes</div>
+<pre><span class="hd">POST</span> <span class="url">/as/device_authz</span> HTTP/1.1
+<span class="hd">Host:</span> auth.example.com
+<span class="hd">Content-Type:</span> application/x-www-form-urlencoded
+
+<span class="pr">client_id</span>=my-device-client
+&amp;<span class="pr">scope</span>=<span class="st">openid profile email offline_access</span></pre>
+
+<p>The token response will include an <code>id_token</code> alongside the <code>access_token</code> — see Section 7 for full examples.</p>
+
+<h2>4.5 Validating the ID Token</h2>
+<ol>
+  <li>Fetch the JWKS from <code>https://auth.example.com/.well-known/jwks.json</code> and cache it (rotate on <code>kid</code> mismatch).</li>
+  <li>Verify the JWT signature using the public key matching the <code>kid</code> header claim.</li>
+  <li>Check <code>iss</code> matches your PingFederate issuer URI.</li>
+  <li>Check <code>aud</code> contains your <code>client_id</code>.</li>
+  <li>Check <code>exp</code> is in the future (allow up to 60 s clock skew).</li>
+  <li>Check <code>auth_time</code> and <code>acr</code> meet your assurance requirements.</li>
+</ol>
+<div class="callout info">
+  <div class="callout-title">ℹ Library Recommendation</div>
+  Use a well-maintained OIDC/JWT library — never implement JWT verification manually.<br>
+  <strong>Python:</strong> python-jose &nbsp;|&nbsp; <strong>Node.js:</strong> jose &nbsp;|&nbsp; <strong>Java:</strong> nimbus-jose-jwt &nbsp;|&nbsp; <strong>.NET:</strong> Microsoft.IdentityModel.Tokens
+</div>
+
+<h2>4.6 PingFederate ID Token Claims</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Claim</th><th>Source in PF</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td><code>sub</code></td><td>Attribute contract — map to immutable user ID</td><td>Must be stable. Do not use email or username.</td></tr>
+    <tr><td><code>iss</code></td><td>AS Settings → Issuer</td><td>Typically <code>https://auth.example.com</code>.</td></tr>
+    <tr><td><code>aud</code></td><td>Automatically set to <code>client_id</code></td><td>May include additional audiences if configured.</td></tr>
+    <tr><td><code>auth_time</code></td><td>Automatically set by PingFederate</td><td>Time of authentication — important for step-up auth decisions.</td></tr>
+    <tr><td><code>acr</code></td><td>Set by authentication policy</td><td>e.g. <code>urn:mace:incommon:iap:silver</code></td></tr>
+    <tr><td><code>amr</code></td><td>Set by authentication adapter</td><td>e.g. <code>["pwd","otp"]</code></td></tr>
+    <tr><td>Custom claims</td><td>Attribute contract mapping</td><td>Map any datastore attribute to a custom claim name.</td></tr>
+  </tbody>
+</table></div>
+<div class="divider"></div>
+
+<!-- 5. CIBA -->
+<h1 id="s5"><span class="h1-num">5</span>CIBA / Backchannel Authentication <span class="badge beta">CIBA</span> <span class="badge rfc">RFC 9126</span></h1>
+<p>OpenID Connect Client-Initiated Backchannel Authentication (CIBA) is a related but distinct flow that eliminates the user code step entirely. Instead of displaying a code for the user to type, the client sends a <strong>login hint</strong> and PingFederate pushes an authentication request directly to the user's registered device (e.g. via PingID push notification).</p>
+
+<div class="callout teal">
+  <div class="callout-title">⟳ Device Authorization vs CIBA</div>
+  <strong>Device Authorization Grant:</strong> User sees a code on the device → visits a URL → types the code → completes login on their phone.<br><br>
+  <strong>CIBA:</strong> Application sends a login hint (e.g. email) → user receives a push notification → approves on their phone. The constrained device never displays a code.
+</div>
+
+<h2>5.1 When to Use CIBA</h2>
+<ul>
+  <li>The application knows the user's identifier (email, phone, or subject) before the authentication request.</li>
+  <li>The user has a registered out-of-band authenticator (e.g. PingID mobile app, FIDO2 push).</li>
+  <li>You want to avoid displaying a code (e.g. IVR/telephony, kiosk, call centre).</li>
+  <li>Your use case requires <strong>fully decoupled authentication</strong> — the consumption device and the authentication device are entirely separate.</li>
+</ul>
+
+<h2>5.2 CIBA Delivery Modes</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Mode</th><th>How it Works</th><th>Use Case</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Poll</strong></td><td>Client polls the token endpoint until the user approves on their authenticator.</td><td>Simpler to implement; suitable when push latency is unpredictable.</td></tr>
+    <tr><td><strong>Ping</strong></td><td>PingFederate calls a client-provided <code>client_notification_endpoint</code> when authentication completes. Client then fetches the token.</td><td>Lower latency; requires the client to expose an HTTPS endpoint.</td></tr>
+    <tr><td><strong>Push</strong></td><td>PingFederate POSTs the full token response directly to the notification endpoint.</td><td>Best for server-side backends; not suitable for public clients.</td></tr>
+  </tbody>
+</table></div>
+
+<h2>5.3 Enable CIBA in PingFederate</h2>
+<p>Navigate to: <code>OAuth Settings → Authorization Server Settings → Grant Types</code></p>
+<ol>
+  <li>Check <strong>CIBA Grant</strong> (requires PF 11.3+).</li>
+  <li>Configure the <strong>CIBA Backchannel Authentication Lifetime</strong> (recommended: 120 seconds).</li>
+  <li>Set the <strong>Polling Interval</strong> (recommended: 5 seconds for Poll mode).</li>
+  <li>Configure a <strong>CIBA Authentication Policy</strong> under Authentication → Policies — must include a push-capable adapter (e.g. PingID).</li>
+  <li>Click <strong>Save</strong>.</li>
+</ol>
+
+<h2>5.4 CIBA Client Configuration</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Field</th><th>Value</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>Allowed Grant Types</td><td>CIBA Grant, Refresh Token</td><td>Enable alongside Device Authorization if both flows are needed.</td></tr>
+    <tr><td>Token Endpoint Auth Method</td><td><code>client_secret_basic</code> or <code>private_key_jwt</code></td><td>CIBA requires confidential clients — public clients are not allowed.</td></tr>
+    <tr><td>CIBA Token Delivery Mode</td><td><code>poll</code>, <code>ping</code>, or <code>push</code></td><td>Set per-client based on your integration pattern.</td></tr>
+    <tr><td>Client Notification Endpoint</td><td><code>https://client.example.com/ciba/notify</code></td><td>Required for <code>ping</code> and <code>push</code> modes only.</td></tr>
+    <tr><td>CIBA Request Signing Algorithm</td><td><code>RS256</code></td><td>Recommended for signed backchannel auth requests.</td></tr>
+    <tr><td>Login Hint Type</td><td><code>loginHint</code>, <code>loginHintToken</code>, or <code>idTokenHint</code></td><td>Determines how the user is identified in the CIBA request.</td></tr>
+  </tbody>
+</table></div>
+
+<div class="callout danger">
+  <div class="callout-title">✕ Security Requirement</div>
+  CIBA <strong>requires confidential clients</strong>. Public clients are not permitted because the client must authenticate itself to the backchannel authentication endpoint. Ensure <code>client_secret_basic</code> or <code>private_key_jwt</code> is configured before enabling CIBA.
+</div>
+
+<h2>5.5 CIBA Request &amp; Response</h2>
+<h3>Backchannel Authentication Request (Poll Mode)</h3>
+<div class="code-label">POST /as/bc-auth</div>
+<pre><span class="hd">POST</span> <span class="url">/as/bc-auth</span> HTTP/1.1
+<span class="hd">Host:</span> auth.example.com
+<span class="hd">Content-Type:</span> application/x-www-form-urlencoded
+<span class="hd">Authorization:</span> Basic bXktY2liYS1jbGllbnQ6c2VjcmV0
+
+<span class="pr">scope</span>=<span class="st">openid profile email</span>
+&amp;<span class="pr">login_hint</span>=<span class="st">jane.smith@example.com</span>
+&amp;<span class="pr">binding_message</span>=<span class="st">Authorise TV login ACME-TV-7842</span>
+&amp;<span class="pr">requested_expiry</span>=<span class="nm">120</span></pre>
+
+<div class="callout info">
+  <div class="callout-title">ℹ binding_message</div>
+  The <code>binding_message</code> is displayed to the user in the PingID push notification. It should uniquely identify the context (e.g. "Authorise TV login ACME-TV-7842") so the user can confirm they initiated the request.
+</div>
+
+<h3>CIBA Authorization Response (202 Accepted)</h3>
+<pre>{
+  <span class="ky">"auth_req_id"</span>: <span class="st">"1c266114-a1be-4252-8ad1-04986c5b9ac1"</span>,
+  <span class="ky">"expires_in"</span>: <span class="nm">120</span>,
+  <span class="ky">"interval"</span>:   <span class="nm">5</span>
+}</pre>
+
+<h3>Poll Token Endpoint</h3>
+<pre><span class="hd">POST</span> <span class="url">/as/token.oauth2</span> HTTP/1.1
+<span class="hd">Host:</span> auth.example.com
+<span class="hd">Content-Type:</span> application/x-www-form-urlencoded
+<span class="hd">Authorization:</span> Basic bXktY2liYS1jbGllbnQ6c2VjcmV0
+
+<span class="pr">grant_type</span>=<span class="st">urn:openid:params:grant-type:ciba</span>
+&amp;<span class="pr">auth_req_id</span>=<span class="st">1c266114-a1be-4252-8ad1-04986c5b9ac1</span></pre>
+
+<h3>Ping Mode — Notification Payload to Client</h3>
+<pre><span class="hd">POST</span> <span class="url">/ciba/notify</span> HTTP/1.1
+<span class="hd">Host:</span> client.example.com
+<span class="hd">Authorization:</span> Bearer &lt;client_notification_token&gt;
+
+{ <span class="ky">"auth_req_id"</span>: <span class="st">"1c266114-a1be-4252-8ad1-04986c5b9ac1"</span> }
+<span class="cm">// Client then fetches the token using the auth_req_id</span></pre>
+
+<h2>5.6 CIBA Error Reference</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Error</th><th>Status</th><th>Meaning</th><th>Action</th></tr></thead>
+  <tbody>
+    <tr><td><code>authorization_pending</code></td><td>400</td><td>User not yet approved.</td><td>Continue polling.</td></tr>
+    <tr><td><code>slow_down</code></td><td>400</td><td>Polling too fast.</td><td>Increase interval by +5 s.</td></tr>
+    <tr><td><code>access_denied</code></td><td>400</td><td>User denied the push.</td><td>Stop polling. Notify user.</td></tr>
+    <tr><td><code>expired_token</code></td><td>400</td><td><code>auth_req_id</code> expired.</td><td>Restart the CIBA flow.</td></tr>
+    <tr><td><code>transaction_failed</code></td><td>400</td><td>Push delivery failed.</td><td>Check PingID connectivity.</td></tr>
+    <tr><td><code>unknown_user_id</code></td><td>400</td><td><code>login_hint</code> not found.</td><td>Verify the hint value and user directory.</td></tr>
+  </tbody>
+</table></div>
+<div class="divider"></div>
+
+<!-- 6. ENDPOINTS -->
+<h1 id="s6"><span class="h1-num">6</span>Endpoint Reference</h1>
+<div class="table-wrap"><table>
+  <thead><tr><th>Endpoint</th><th>URL Pattern</th><th>Method</th></tr></thead>
+  <tbody>
+    <tr><td>Device Authorization</td><td><code>https://&lt;pf-host&gt;/as/device_authz</code></td><td><span class="method post">POST</span></td></tr>
+    <tr><td>CIBA Backchannel Auth</td><td><code>https://&lt;pf-host&gt;/as/bc-auth</code></td><td><span class="method post">POST</span></td></tr>
+    <tr><td>Token (polling — both flows)</td><td><code>https://&lt;pf-host&gt;/as/token.oauth2</code></td><td><span class="method post">POST</span></td></tr>
+    <tr><td>OIDC Discovery</td><td><code>https://&lt;pf-host&gt;/.well-known/openid-configuration</code></td><td><span class="method get">GET</span></td></tr>
+    <tr><td>JWKS (key verification)</td><td><code>https://&lt;pf-host&gt;/.well-known/jwks.json</code></td><td><span class="method get">GET</span></td></tr>
+    <tr><td>Verification URI</td><td><code>https://&lt;pf-host&gt;/as/device</code></td><td><span class="method get">GET</span></td></tr>
+    <tr><td>Verification URI (with code)</td><td><code>https://&lt;pf-host&gt;/as/device?user_code=XXXX-YYYY</code></td><td><span class="method get">GET</span></td></tr>
+    <tr><td>UserInfo (OIDC)</td><td><code>https://&lt;pf-host&gt;/idp/userinfo.openid</code></td><td><span class="method get">GET</span></td></tr>
+    <tr><td>Token Revocation</td><td><code>https://&lt;pf-host&gt;/as/revoke_token.oauth2</code></td><td><span class="method post">POST</span></td></tr>
+    <tr><td>Token Introspection</td><td><code>https://&lt;pf-host&gt;/as/introspect.oauth2</code></td><td><span class="method post">POST</span></td></tr>
+  </tbody>
+</table></div>
+<div class="callout info">
+  <div class="callout-title">ℹ Always Use Discovery</div>
+  Resolve endpoint URLs dynamically from the OIDC discovery document. It will include <code>device_authorization_endpoint</code> and <code>backchannel_authentication_endpoint</code> when those grants are enabled. Never hardcode URLs in production.
+</div>
+<div class="divider"></div>
+
+<!-- 7. EXAMPLES -->
+<h1 id="s7"><span class="h1-num">7</span>Request &amp; Response Examples</h1>
+
+<h2>7.1 Device Authorization Request</h2>
+<div class="code-label">POST /as/device_authz</div>
+<pre><span class="hd">POST</span> <span class="url">/as/device_authz</span> HTTP/1.1
+<span class="hd">Host:</span> auth.example.com
+<span class="hd">Content-Type:</span> application/x-www-form-urlencoded
+
+<span class="pr">client_id</span>=my-device-client&amp;<span class="pr">scope</span>=<span class="st">openid profile email offline_access</span></pre>
+
+<div class="code-label">Response — 200 OK</div>
+<pre>{
+  <span class="ky">"device_code"</span>:              <span class="st">"GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS"</span>,
+  <span class="ky">"user_code"</span>:                <span class="st">"BDLG-RJZF"</span>,
+  <span class="ky">"verification_uri"</span>:         <span class="st">"https://auth.example.com/device"</span>,
+  <span class="ky">"verification_uri_complete"</span>: <span class="st">"https://auth.example.com/device?user_code=BDLG-RJZF"</span>,
+  <span class="ky">"expires_in"</span>:               <span class="nm">600</span>,
+  <span class="ky">"interval"</span>:                 <span class="nm">5</span>
+}</pre>
+
+<h2>7.2 Token Poll Responses</h2>
+<div class="code-label">authorization_pending — continue polling</div>
+<pre>{ <span class="ky">"error"</span>: <span class="st">"authorization_pending"</span>, <span class="ky">"error_description"</span>: <span class="st">"User has not yet completed authorization."</span> }</pre>
+<div class="code-label">slow_down — increase interval by 5 s</div>
+<pre>{ <span class="ky">"error"</span>: <span class="st">"slow_down"</span>, <span class="ky">"error_description"</span>: <span class="st">"Polling too frequently. Increase interval by 5 seconds."</span> }</pre>
+<div class="code-label">Success — 200 OK (with OIDC)</div>
+<pre>{
+  <span class="ky">"access_token"</span>:  <span class="st">"eyJhbGciOiJSUzI1NiIsImtpZCI6IjFlOWdkazcifQ..."</span>,
+  <span class="ky">"token_type"</span>:    <span class="st">"Bearer"</span>,
+  <span class="ky">"expires_in"</span>:    <span class="nm">3600</span>,
+  <span class="ky">"refresh_token"</span>: <span class="st">"tGzv3JOkF0XG5Qx2TlKWIA..."</span>,
+  <span class="ky">"scope"</span>:         <span class="st">"openid profile email offline_access"</span>,
+  <span class="ky">"id_token"</span>:      <span class="st">"eyJhbGciOiJSUzI1NiIsImtpZCI6IjFlOWdkazcifQ..."</span>
+}</pre>
+
+<h2>7.3 Decoded ID Token Payload</h2>
+<pre>{
+  <span class="ky">"sub"</span>:        <span class="st">"a3f2b1c9-1234-5678-abcd-ef0123456789"</span>,
+  <span class="ky">"iss"</span>:        <span class="st">"https://auth.example.com"</span>,
+  <span class="ky">"aud"</span>:        <span class="st">"my-device-client"</span>,
+  <span class="ky">"exp"</span>:        <span class="nm">1775000000</span>,
+  <span class="ky">"iat"</span>:        <span class="nm">1774996400</span>,
+  <span class="ky">"auth_time"</span>:  <span class="nm">1774996390</span>,
+  <span class="ky">"acr"</span>:        <span class="st">"urn:mace:incommon:iap:silver"</span>,
+  <span class="ky">"amr"</span>:        [<span class="st">"pwd"</span>, <span class="st">"otp"</span>],
+  <span class="ky">"name"</span>:       <span class="st">"Jane Smith"</span>,
+  <span class="ky">"email"</span>:      <span class="st">"jane.smith@example.com"</span>,
+  <span class="ky">"given_name"</span>: <span class="st">"Jane"</span>,
+  <span class="ky">"family_name"</span>:<span class="st">"Smith"</span>
+}</pre>
+
+<h2>7.4 Error Reference</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Error</th><th>Status</th><th>Meaning</th><th>Device Action</th></tr></thead>
+  <tbody>
+    <tr><td><code>authorization_pending</code></td><td>400</td><td>User not yet completed login.</td><td>Continue polling at normal interval.</td></tr>
+    <tr><td><code>slow_down</code></td><td>400</td><td>Polling too fast.</td><td>Increase interval by +5 s, then continue.</td></tr>
+    <tr><td><code>access_denied</code></td><td>400</td><td>User denied authorization.</td><td>Stop polling. Notify user. Restart flow.</td></tr>
+    <tr><td><code>expired_token</code></td><td>400</td><td><code>device_code</code> has expired.</td><td>Restart the entire flow.</td></tr>
+    <tr><td><code>invalid_client</code></td><td>401</td><td><code>client_id</code> unrecognized.</td><td>Check client config in PingFederate.</td></tr>
+    <tr><td><code>invalid_grant</code></td><td>400</td><td><code>device_code</code> already used or invalid.</td><td>Restart with a new <code>device_code</code>.</td></tr>
+  </tbody>
+</table></div>
+<div class="divider"></div>
+
+<!-- 8. CODE EXAMPLES -->
+<h1 id="s8"><span class="h1-num">8</span>Code Examples</h1>
+
+<h2>8.1 Python — Device Flow with OIDC + ID Token Validation</h2>
+<pre><span class="kw">import</span> time, requests
+<span class="kw">from</span> jose <span class="kw">import</span> jwt  <span class="cm"># pip install python-jose[cryptography]</span>
+
+PF_BASE   = <span class="st">'https://auth.example.com'</span>
+CLIENT_ID = <span class="st">'my-device-client'</span>
+SCOPE     = <span class="st">'openid profile email offline_access'</span>
+
+<span class="kw">def</span> <span class="fn">start_device_flow</span>():
+    resp = requests.<span class="op">post</span>(<span class="st">f'{PF_BASE}/as/device_authz'</span>,
+        data={<span class="st">'client_id'</span>: CLIENT_ID, <span class="st">'scope'</span>: SCOPE})
+    resp.<span class="op">raise_for_status</span>()
+    <span class="kw">return</span> resp.<span class="op">json</span>()
+
+<span class="kw">def</span> <span class="fn">poll_for_token</span>(device_code, interval):
+    <span class="kw">while</span> <span class="kw">True</span>:
+        time.<span class="op">sleep</span>(interval)
+        resp = requests.<span class="op">post</span>(<span class="st">f'{PF_BASE}/as/token.oauth2'</span>, data={
+            <span class="st">'grant_type'</span>: <span class="st">'urn:ietf:params:oauth:grant-type:device_code'</span>,
+            <span class="st">'device_code'</span>: device_code, <span class="st">'client_id'</span>: CLIENT_ID})
+        data = resp.<span class="op">json</span>()
+        <span class="kw">if</span> resp.status_code == <span class="nm">200</span>: <span class="kw">return</span> data
+        err = data.<span class="op">get</span>(<span class="st">'error'</span>)
+        <span class="kw">if</span>   err == <span class="st">'authorization_pending'</span>: <span class="kw">continue</span>
+        <span class="kw">elif</span> err == <span class="st">'slow_down'</span>:            interval += <span class="nm">5</span>
+        <span class="kw">elif</span> err <span class="kw">in</span> (<span class="st">'access_denied'</span>, <span class="st">'expired_token'</span>):
+            <span class="kw">raise</span> RuntimeError(<span class="st">f'Flow failed: {err}'</span>)
+
+<span class="kw">def</span> <span class="fn">validate_id_token</span>(id_token):
+    jwks = requests.<span class="op">get</span>(<span class="st">f'{PF_BASE}/.well-known/jwks.json'</span>).<span class="op">json</span>()
+    <span class="kw">return</span> jwt.<span class="op">decode</span>(id_token, jwks,
+        algorithms=[<span class="st">'RS256'</span>], audience=CLIENT_ID, issuer=PF_BASE)
+
+<span class="kw">if</span> __name__ == <span class="st">'__main__'</span>:
+    flow   = <span class="fn">start_device_flow</span>()
+    <span class="fn">print</span>(<span class="st">f'Visit: {flow["verification_uri"]}'</span>)
+    <span class="fn">print</span>(<span class="st">f'Code:  {flow["user_code"]}'</span>)
+    tokens = <span class="fn">poll_for_token</span>(flow[<span class="st">'device_code'</span>], flow[<span class="st">'interval'</span>])
+    claims = <span class="fn">validate_id_token</span>(tokens[<span class="st">'id_token'</span>])
+    <span class="fn">print</span>(<span class="st">f'User: {claims["name"]} ({claims["email"]})'</span>)</pre>
+
+<h2>8.2 Python — CIBA Poll Mode</h2>
+<pre><span class="kw">import</span> time, requests
+<span class="kw">from</span> requests.auth <span class="kw">import</span> HTTPBasicAuth
+
+PF_BASE    = <span class="st">'https://auth.example.com'</span>
+CLIENT_ID  = <span class="st">'my-ciba-client'</span>
+CLIENT_SEC = <span class="st">'s3cr3t'</span>
+AUTH       = HTTPBasicAuth(CLIENT_ID, CLIENT_SEC)
+
+<span class="kw">def</span> <span class="fn">start_ciba</span>(login_hint, binding_message):
+    resp = requests.<span class="op">post</span>(<span class="st">f'{PF_BASE}/as/bc-auth'</span>, auth=AUTH, data={
+        <span class="st">'scope'</span>:            <span class="st">'openid profile email'</span>,
+        <span class="st">'login_hint'</span>:       login_hint,
+        <span class="st">'binding_message'</span>:  binding_message,
+        <span class="st">'requested_expiry'</span>: <span class="nm">120</span>})
+    resp.<span class="op">raise_for_status</span>()
+    <span class="kw">return</span> resp.<span class="op">json</span>()
+
+<span class="kw">def</span> <span class="fn">poll_ciba</span>(auth_req_id, interval):
+    <span class="kw">while</span> <span class="kw">True</span>:
+        time.<span class="op">sleep</span>(interval)
+        resp = requests.<span class="op">post</span>(<span class="st">f'{PF_BASE}/as/token.oauth2'</span>, auth=AUTH, data={
+            <span class="st">'grant_type'</span>:  <span class="st">'urn:openid:params:grant-type:ciba'</span>,
+            <span class="st">'auth_req_id'</span>: auth_req_id})
+        data = resp.<span class="op">json</span>()
+        <span class="kw">if</span> resp.status_code == <span class="nm">200</span>: <span class="kw">return</span> data
+        err = data.<span class="op">get</span>(<span class="st">'error'</span>)
+        <span class="kw">if</span>   err == <span class="st">'authorization_pending'</span>: <span class="kw">continue</span>
+        <span class="kw">elif</span> err == <span class="st">'slow_down'</span>:            interval += <span class="nm">5</span>
+        <span class="kw">else</span>: <span class="kw">raise</span> RuntimeError(<span class="st">f'CIBA error: {err}'</span>)
+
+<span class="kw">if</span> __name__ == <span class="st">'__main__'</span>:
+    ciba   = <span class="fn">start_ciba</span>(<span class="st">'jane.smith@example.com'</span>, <span class="st">'Authorise TV login ACME-TV-7842'</span>)
+    tokens = <span class="fn">poll_ciba</span>(ciba[<span class="st">'auth_req_id'</span>], ciba[<span class="st">'interval'</span>])
+    <span class="fn">print</span>(<span class="st">'Access token:'</span>, tokens[<span class="st">'access_token'</span>][:<span class="nm">40</span>])</pre>
+
+<h2>8.3 Node.js (TypeScript) — Device Flow</h2>
+<pre><span class="kw">import</span> axios <span class="kw">from</span> <span class="st">'axios'</span>;
+<span class="kw">const</span> PF_BASE = <span class="st">'https://auth.example.com'</span>, CLIENT_ID = <span class="st">'my-device-client'</span>;
+
+<span class="kw">async function</span> <span class="fn">deviceFlow</span>() {
+  <span class="kw">const</span> { data: authz } = <span class="kw">await</span> axios.<span class="op">post</span>(<span class="st">`${PF_BASE}/as/device_authz`</span>,
+    <span class="kw">new</span> URLSearchParams({ client_id: CLIENT_ID, scope: <span class="st">'openid profile email offline_access'</span> }));
+  console.<span class="op">log</span>(<span class="st">`Visit: ${authz.verification_uri}  Code: ${authz.user_code}`</span>);
+
+  <span class="kw">let</span> interval = authz.interval ?? <span class="nm">5</span>;
+  <span class="kw">while</span> (<span class="kw">true</span>) {
+    <span class="kw">await new</span> Promise(r => setTimeout(r, interval * <span class="nm">1000</span>));
+    <span class="kw">try</span> {
+      <span class="kw">const</span> { data } = <span class="kw">await</span> axios.<span class="op">post</span>(<span class="st">`${PF_BASE}/as/token.oauth2`</span>,
+        <span class="kw">new</span> URLSearchParams({
+          grant_type: <span class="st">'urn:ietf:params:oauth:grant-type:device_code'</span>,
+          device_code: authz.device_code, client_id: CLIENT_ID }));
+      console.<span class="op">log</span>(<span class="st">'Token:'</span>, data.access_token.<span class="op">slice</span>(<span class="nm">0</span>,<span class="nm">40</span>)); <span class="kw">return</span>;
+    } <span class="kw">catch</span> (err: <span class="kw">any</span>) {
+      <span class="kw">const</span> e = err.response?.data?.error;
+      <span class="kw">if</span> (e === <span class="st">'authorization_pending'</span>) <span class="kw">continue</span>;
+      <span class="kw">if</span> (e === <span class="st">'slow_down'</span>) { interval += <span class="nm">5</span>; <span class="kw">continue</span>; }
+      <span class="kw">throw new</span> Error(e);
+    }
+  }
+}
+deviceFlow().<span class="op">catch</span>(console.error);</pre>
+
+<h2>8.4 cURL — Quick Testing</h2>
+<h3>Device Authorization</h3>
+<pre>curl -s -X POST https://auth.example.com/as/device_authz \
+  -H <span class="st">'Content-Type: application/x-www-form-urlencoded'</span> \
+  -d <span class="st">'client_id=my-device-client&amp;scope=openid+profile+email'</span> | python3 -m json.tool</pre>
+<h3>CIBA Backchannel Auth</h3>
+<pre>curl -s -X POST https://auth.example.com/as/bc-auth \
+  -u my-ciba-client:s3cr3t \
+  -H <span class="st">'Content-Type: application/x-www-form-urlencoded'</span> \
+  -d <span class="st">'scope=openid+profile+email'</span> \
+  -d <span class="st">'login_hint=jane.smith@example.com'</span> \
+  -d <span class="st">'binding_message=Authorise+TV+login+ACME-TV-7842'</span> | python3 -m json.tool</pre>
+<h3>UserInfo (OIDC)</h3>
+<pre>curl -s https://auth.example.com/idp/userinfo.openid \
+  -H <span class="st">'Authorization: Bearer &lt;ACCESS_TOKEN&gt;'</span> | python3 -m json.tool</pre>
+<div class="divider"></div>
+
+<!-- 9. SECURITY -->
+<h1 id="s9"><span class="h1-num">9</span>Security Considerations</h1>
+<div class="callout purple">
+  <div class="callout-title">🔒 Security Review Required</div>
+  All device authorization and CIBA deployments <strong>must be reviewed by the IAM Security team</strong> before go-live. Complete the IAM Onboarding Checklist (Confluence: IAM/Onboarding) as part of your design review.
+</div>
+
+<h2>9.1 Transport &amp; Code Security</h2>
+<ul>
+  <li>All endpoints <strong>must</strong> use TLS 1.2 or higher. Disable TLS 1.0/1.1 on PingFederate.</li>
+  <li>The verification URI must always use HTTPS — never HTTP.</li>
+  <li>Set <code>device_code</code> lifetime to the minimum practical value (300–600 s). Do not exceed 900 s.</li>
+  <li>Use consonants-only character set to prevent transcription errors and reduce guessing risk.</li>
+  <li>Apply rate limiting at your network edge (API gateway, WAF) on <code>/as/device_authz</code> and <code>/as/bc-auth</code>.</li>
+</ul>
+
+<h2>9.2 Client &amp; Token Security</h2>
+<ul>
+  <li>Scope clients to minimum necessary permissions — avoid admin-level scopes for device clients.</li>
+  <li>Confidential clients must rotate secrets on a regular schedule (90-day maximum).</li>
+  <li>Store tokens in secure, encrypted storage (TPM, secure enclave, or hardware keystore).</li>
+  <li>Never log access tokens or refresh tokens in plaintext.</li>
+  <li>Revoke tokens when a device is decommissioned or a user revokes access.</li>
+</ul>
+
+<h2>9.3 OIDC-Specific</h2>
+<ul>
+  <li>Always validate <code>id_token</code> signatures using the JWKS endpoint — never skip signature verification.</li>
+  <li>Set <code>sub</code> to an immutable identifier. Never use mutable attributes like email as the subject.</li>
+  <li>Cache JWKS but rotate the cache on <code>kid</code> mismatch to handle key rotation gracefully.</li>
+</ul>
+
+<h2>9.4 CIBA-Specific</h2>
+<ul>
+  <li>Always include a meaningful <code>binding_message</code> so users can confirm the request is legitimate.</li>
+  <li>Validate the <code>login_hint</code> against your user directory before sending the CIBA request to prevent user enumeration.</li>
+  <li>The client notification endpoint (Ping/Push modes) must validate the <code>Authorization: Bearer</code> client notification token.</li>
+  <li>Prefer <code>private_key_jwt</code> over <code>client_secret_basic</code> for production CIBA deployments.</li>
+</ul>
+<div class="divider"></div>
+
+<!-- 10. TROUBLESHOOTING -->
+<h1 id="s10"><span class="h1-num">10</span>Troubleshooting</h1>
+<div class="table-wrap"><table>
+  <thead><tr><th>Symptom</th><th>Likely Cause</th><th>Resolution</th></tr></thead>
+  <tbody>
+    <tr><td>400 on <code>/as/device_authz</code></td><td>Grant not enabled for client or globally.</td><td>Enable Device Authorization Grant in AS Settings and on the client.</td></tr>
+    <tr><td>404 on <code>/as/device_authz</code></td><td>PF version &lt; 11.1 or wrong path.</td><td>Upgrade PF or resolve URL from OIDC discovery document.</td></tr>
+    <tr><td><code>user_code</code> not accepted</td><td>Code expired or mistyped.</td><td>Restart device flow to get a fresh code.</td></tr>
+    <tr><td><code>authorization_pending</code> never resolves</td><td>User cannot reach verification URI, or MFA is blocking.</td><td>Check secondary device network access. Review authentication policy.</td></tr>
+    <tr><td><code>expired_token</code> on first poll</td><td>Clock skew between device and PingFederate.</td><td>Sync device clock with NTP.</td></tr>
+    <tr><td>No <code>id_token</code> in response</td><td>OIDC not enabled or <code>openid</code> scope not requested.</td><td>Enable OIDC in AS Settings. Include <code>openid</code> in <code>scope</code>.</td></tr>
+    <tr><td><code>id_token</code> signature invalid</td><td>Wrong JWKS URI or stale cached key.</td><td>Re-fetch JWKS. Check <code>kid</code> header matches a key in the JWKS.</td></tr>
+    <tr><td>CIBA 400 <code>unauthorized_client</code></td><td>Client not configured as confidential.</td><td>Set client auth to <code>client_secret_basic</code> and supply credentials.</td></tr>
+    <tr><td>CIBA <code>unknown_user_id</code></td><td><code>login_hint</code> not found in directory.</td><td>Verify the hint format and that the user exists in PF's data store.</td></tr>
+    <tr><td>CIBA push not delivered</td><td>PingID adapter misconfigured.</td><td>Check PingID adapter logs. Verify push notification service reachability.</td></tr>
+    <tr><td>Token missing expected claims</td><td>Attribute mapping incomplete.</td><td>Review token attribute contract in client → Attribute Mapping tab.</td></tr>
+  </tbody>
+</table></div>
+
+<h2>10.1 Log Locations</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Log File</th><th>Path</th><th>What to Look For</th></tr></thead>
+  <tbody>
+    <tr><td>Audit Log</td><td><code>&lt;PF_HOME&gt;/log/audit.log</code></td><td>OAuth token events, CIBA requests, authorization failures.</td></tr>
+    <tr><td>Server Log</td><td><code>&lt;PF_HOME&gt;/log/server.log</code></td><td>General errors, adapter failures, startup issues.</td></tr>
+    <tr><td>Admin Log</td><td><code>&lt;PF_HOME&gt;/log/admin.log</code></td><td>Configuration changes.</td></tr>
+  </tbody>
+</table></div>
+
+<h3>Useful Log Filters</h3>
+<pre><span class="cm"># Device authorization and CIBA events</span>
+grep -iE <span class="st">'(device|ciba|bc-auth)'</span> &lt;PF_HOME&gt;/log/audit.log | tail -50
+
+<span class="cm"># Token events for a specific client</span>
+grep <span class="st">'my-device-client'</span> &lt;PF_HOME&gt;/log/audit.log | grep -E <span class="st">'TOKEN_GRANT|AUTHN_ATTEMPT'</span></pre>
+<div class="divider"></div>
+
+<!-- 11. CHECKLIST -->
+<h1 id="s11"><span class="h1-num">11</span>Pre-Go-Live Testing Checklist</h1>
+<p>Complete each item and attach evidence (screenshot or log excerpt) to your IAM onboarding ticket before promoting to production.</p>
+<div style="background:var(--gray-light);border-radius:8px;padding:4px 0;margin:16px 0;">
+<ul class="checklist">
+  <li><span class="check-box"></span><span class="check-num">1</span><span class="check-text">POST to <code>/as/device_authz</code> with valid <code>client_id</code> and <code>scope</code><div class="check-expect">Expected: 200 with <code>device_code</code>, <code>user_code</code>, <code>verification_uri</code>, <code>interval</code>, <code>expires_in</code></div></span></li>
+  <li><span class="check-box"></span><span class="check-num">2</span><span class="check-text">Navigate to <code>verification_uri</code> on secondary device<div class="check-expect">Expected: PingFederate login page loads correctly</div></span></li>
+  <li><span class="check-box"></span><span class="check-num">3</span><span class="check-text">Enter valid <code>user_code</code> — complete login + MFA<div class="check-expect">Expected: Consent/success page shown on secondary device</div></span></li>
+  <li><span class="check-box"></span><span class="check-num">4</span><span class="check-text">Poll token endpoint before user authorizes<div class="check-expect">Expected: 400 <code>authorization_pending</code></div></span></li>
+  <li><span class="check-box"></span><span class="check-num">5</span><span class="check-text">Poll token endpoint after authorization<div class="check-expect">Expected: 200 with <code>access_token</code>, <code>refresh_token</code>, <code>id_token</code></div></span></li>
+  <li><span class="check-box"></span><span class="check-num">6</span><span class="check-text">Decode and validate <code>id_token</code> — check <code>sub</code>, <code>iss</code>, <code>aud</code>, <code>exp</code>, <code>acr</code>, <code>amr</code><div class="check-expect">Expected: All claims present and valid; signature verifies against JWKS</div></span></li>
+  <li><span class="check-box"></span><span class="check-num">7</span><span class="check-text">Call UserInfo endpoint with <code>access_token</code><div class="check-expect">Expected: 200 with correct user profile claims</div></span></li>
+  <li><span class="check-box"></span><span class="check-num">8</span><span class="check-text">Poll faster than <code>interval</code><div class="check-expect">Expected: 400 <code>slow_down</code></div></span></li>
+  <li><span class="check-box"></span><span class="check-num">9</span><span class="check-text">Wait for <code>expires_in</code> to elapse — then poll<div class="check-expect">Expected: 400 <code>expired_token</code></div></span></li>
+  <li><span class="check-box"></span><span class="check-num">10</span><span class="check-text">Use <code>refresh_token</code> to obtain new <code>access_token</code><div class="check-expect">Expected: 200 with new <code>access_token</code></div></span></li>
+  <li><span class="check-box"></span><span class="check-num">11</span><span class="check-text">Revoke <code>access_token</code> — then introspect<div class="check-expect">Expected: <code>active: false</code> after revocation</div></span></li>
+  <li><span class="check-box"></span><span class="check-num">12</span><span class="check-text">CIBA: POST to <code>/as/bc-auth</code> with valid <code>login_hint</code><div class="check-expect">Expected: 202 with <code>auth_req_id</code>, <code>interval</code>, <code>expires_in</code></div></span></li>
+  <li><span class="check-box"></span><span class="check-num">13</span><span class="check-text">CIBA: User approves push on mobile → poll token endpoint<div class="check-expect">Expected: 200 with <code>access_token</code> and <code>id_token</code></div></span></li>
+  <li><span class="check-box"></span><span class="check-num">14</span><span class="check-text">CIBA: User denies push<div class="check-expect">Expected: 400 <code>access_denied</code></div></span></li>
+  <li><span class="check-box"></span><span class="check-num">15</span><span class="check-text">CIBA: <code>auth_req_id</code> allowed to expire before approval<div class="check-expect">Expected: 400 <code>expired_token</code></div></span></li>
+</ul>
+</div>
+<div class="divider"></div>
+
+<!-- 12. RESOURCES -->
+<h1 id="s12"><span class="h1-num">12</span>Related Resources</h1>
+<div class="table-wrap"><table>
+  <thead><tr><th>Resource</th><th>Link / Location</th></tr></thead>
+  <tbody>
+    <tr><td>RFC 8628 — OAuth 2.0 Device Authorization Grant</td><td><a href="https://www.rfc-editor.org/rfc/rfc8628">rfc-editor.org/rfc/rfc8628</a></td></tr>
+    <tr><td>OpenID Connect CIBA Core 1.0</td><td><a href="https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html">openid.net/specs/openid-ciba</a></td></tr>
+    <tr><td>OpenID Connect Core 1.0</td><td><a href="https://openid.net/specs/openid-connect-core-1_0.html">openid.net/specs/openid-connect-core</a></td></tr>
+    <tr><td>PingFederate 11.x Documentation</td><td><a href="https://docs.pingidentity.com/r/en-us/pingfederate-112">docs.pingidentity.com/pingfederate-112</a></td></tr>
+    <tr><td>PingFederate OAuth AS Configuration</td><td><a href="https://docs.pingidentity.com/r/en-us/pingfederate-112/pf_oauth_as_overview">PingFederate OAuth AS Overview</a></td></tr>
+    <tr><td>IAM Platform — OAuth Client Registration</td><td>Confluence: IAM / OAuth / Client Registration</td></tr>
+    <tr><td>IAM Platform — Token Introspection Guide</td><td>Confluence: IAM / OAuth / Token Introspection</td></tr>
+    <tr><td>IAM Security Review Checklist</td><td>Confluence: IAM / Security / Review Checklist</td></tr>
+    <tr><td>PingFederate Admin Console (Internal)</td><td><a href="https://pf-admin.internal.example.com:9999">pf-admin.internal.example.com:9999</a></td></tr>
+  </tbody>
+</table></div>
+
+<div class="page-footer">
+  <span>Maintained by the IAM Platform Team · Raise issues via #iam-support on Slack</span>
+  <span>v1.3 · March 2026 · INTERNAL / CONFIDENTIAL</span>
+</div>
+
+</body>
+</html>
